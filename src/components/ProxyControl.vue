@@ -32,7 +32,7 @@ async function launchEmulator() {
     await window.electronAPI.launchEmulator();
   } catch (error) {
     console.error('Failed to launch emulator:', error);
-    alert('Không thể khởi chạy máy ảo Android. Vui lòng đảm bảo Android SDK đã được cài đặt.');
+    alert('Unable to launch Android emulator. Please ensure Android SDK is installed.');
   }
 }
 </script>
@@ -47,11 +47,11 @@ async function launchEmulator() {
       <Play v-else-if="!proxyStore.isRunning" class="w-4 h-4" />
       <Square v-else class="w-4 h-4" />
       <span>{{ proxyStore.isRunning ? 'Stop' : 'Start' }}</span>
-    </button>
+    </button>now give me a message for 
 
-    <!-- Emulator Button -->
+    <!-- Emulatonow give me a message for r Button -->
     <button class="emulator-button" @click="launchEmulator" :disabled="!proxyStore.isRunning"
-      :title="proxyStore.isRunning ? 'Khởi chạy máy ảo Android với proxy' : 'Vui lòng khởi động proxy trước'">
+      :title="proxyStore.isRunning ? 'Launch Android emulator with proxy' : 'Please start the proxy first'">
       <Smartphone class="w-4 h-4" />
       <span>Android</span>
     </button>
@@ -66,6 +66,7 @@ async function launchEmulator() {
 </template>
 
 <style scoped>
+/* (Styles remain unchanged) */
 .proxy-control {
   display: flex;
   align-items: center;
@@ -178,5 +179,4 @@ async function launchEmulator() {
   color: #6e7681;
   border-color: rgba(240, 246, 252, 0.1);
 }
-
 </style>
