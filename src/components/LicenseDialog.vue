@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useLicenseStore } from '@/stores/licenseStore';
-import { X, Crown, Zap, Shield, Rocket, Check, Star } from 'lucide-vue-next';
+import { X, Crown, Zap, Shield, Rocket, Check, Star, Mail, Key as KeyIcon, ArrowRight, Loader2, Info } from 'lucide-vue-next';
 import { useToast } from 'primevue/usetoast';
 
 const licenseStore = useLicenseStore();
@@ -10,39 +10,24 @@ const toast = useToast();
 const licenseKey = ref('');
 const email = ref('');
 const isActivating = ref(false);
-const activePanel = ref<'info' | 'activate'>('info');
+const activePanel = ref<'pricing' | 'activate'>('pricing');
 
-const featureLabels: Record<string, string> = {
-  'map-rules': 'Map Local / Map Remote',
-  'throttle': 'Network Throttling',
-  'diff-compare': 'Request Diff & Compare',
-  'advanced-export': 'Advanced Export (HAR, Python, Postman)',
-  'session-save': 'Save & Load Sessions',
-  'ssl-bypass': 'SSL Pinning Bypass',
-  'unlimited-mock': 'Unlimited Mock Rules',
-  'unlimited-breakpoints': 'Unlimited Breakpoints',
-  'scripting': 'JavaScript Scripting Engine',
-  'websocket': 'WebSocket Inspection',
-  'graphql': 'GraphQL Viewer',
-  'shared-sessions': 'Shared Team Sessions',
-};
-
-const requestedFeatureLabel = computed(() => {
-  return featureLabels[licenseStore.upgradeFeature] || licenseStore.upgradeFeature;
-});
+const freeFeatures = [
+  'HTTP/HTTPS Interception',
+  'Basic Request/Response View',
+  'JSON/XML Formatting',
+  'Basic Search & Filter',
+  'Standard Text Export',
+];
 
 const proFeatures = [
   'Map Local / Map Remote',
-  'Network Throttling (3G, 4G, etc.)',
+  'Network Throttling Engine',
+  'SSL Pinning Bypass',
   'Request Diff & Compare',
-  'Advanced Export Formats',
-  'Save & Load Sessions',
-  'SSL Pinning Bypass Tools',
+  'JavaScript Scripting',
+  'Postman & HAR Export',
   'Unlimited Mock Rules',
-  'Unlimited Breakpoints',
-  'WebSocket Inspection',
-  'GraphQL Viewer',
-  'Priority Support',
 ];
 
 async function activate() {
@@ -54,10 +39,10 @@ async function activate() {
   isActivating.value = true;
   try {
     await licenseStore.activateLicense(licenseKey.value.trim(), email.value.trim());
-    toast.add({ severity: 'success', summary: 'Activated!', detail: `Welcome to Trafexia ${licenseStore.tierLabel}!`, life: 5000 });
+    toast.add({ severity: 'success', summary: 'PRO ACTIVATED', detail: `Welcome to Trafexia Pro`, life: 5000 });
     close();
   } catch (err: any) {
-    toast.add({ severity: 'error', summary: 'Activation Failed', detail: err.message || 'Invalid license key', life: 5000 });
+    toast.add({ severity: 'error', summary: 'ACTIVATION FAILED', detail: err.message || 'Invalid license key', life: 5000 });
   } finally {
     isActivating.value = false;
   }
@@ -68,289 +53,238 @@ function close() {
   licenseStore.upgradeFeature = '';
   licenseKey.value = '';
   email.value = '';
-  activePanel.value = 'info';
+  activePanel.value = 'pricing';
 }
 
 function openPurchase() {
-  // Open purchase page in browser
   window.open('https://trafexia.dev/pricing', '_blank');
 }
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="licenseStore.showUpgradeDialog" class="upgrade-overlay" @click.self="close">
-      <div class="upgrade-dialog">
-        <!-- Close button -->
-        <button class="close-btn" @click="close">
-          <X :size="20" />
-        </button>
+    <Transition name="fade">
+      <div v-if="licenseStore.showUpgradeDialog" class="pricing-overlay" @click.self="close">
+        <div class="pricing-container animate-slide-up">
+          <button class="close-btn" @click="close">
+            <X :size="16" />
+          </button>
 
-        <!-- Header -->
-        <div class="upgrade-header">
-          <div class="crown-icon">
-            <Crown :size="32" />
-          </div>
-          <h2>Upgrade to Trafexia Pro</h2>
-          <p class="subtitle" v-if="licenseStore.upgradeFeature">
-            <Zap :size="14" />
-            <strong>{{ requestedFeatureLabel }}</strong> requires Pro
-          </p>
-          <p class="subtitle" v-else>
-            Unlock all premium features
-          </p>
-        </div>
-
-        <!-- Info Panel -->
-        <div v-if="activePanel === 'info'" class="upgrade-body">
-          <!-- Pricing Card -->
-          <div class="pricing-card">
-            <div class="pricing-badge">MOST POPULAR</div>
-            <div class="pricing-tier">Pro</div>
-            <div class="pricing-price">
-              <span class="price-amount">$29</span>
-              <span class="price-period">/year</span>
+          <div v-if="activePanel === 'pricing'" class="pricing-panel">
+            <div class="header">
+              <h2>Select your protocol</h2>
+              <p>Choose the tier that fits your debugging requirements.</p>
             </div>
-            <div class="pricing-monthly">or $4.99/month</div>
-            
-            <div class="features-list">
-              <div v-for="feature in proFeatures" :key="feature" class="feature-item">
-                <Check :size="16" class="feature-check" />
-                <span>{{ feature }}</span>
+
+            <div class="tier-grid">
+              <!-- Free Tier -->
+              <div class="tier-card free">
+                <div class="tier-header">
+                  <span class="tier-name">Community</span>
+                  <div class="price">
+                    <span class="amount">$0</span>
+                    <span class="period">forever</span>
+                  </div>
+                </div>
+                <div class="features-list">
+                  <div v-for="f in freeFeatures" :key="f" class="feature-item">
+                    <Check :size="12" class="icon" />
+                    <span>{{ f }}</span>
+                  </div>
+                </div>
+                <button class="tier-btn secondary" disabled>Current Tier</button>
+              </div>
+
+              <!-- Pro Tier -->
+              <div class="tier-card pro">
+                <div class="pro-label">RECOMMENDED</div>
+                <div class="tier-header">
+                  <span class="tier-name">Professional</span>
+                  <div class="price">
+                    <span class="amount">$29</span>
+                    <span class="period">/ year</span>
+                  </div>
+                </div>
+                <div class="features-list">
+                  <div v-for="f in proFeatures" :key="f" class="feature-item">
+                    <Check :size="12" class="icon pro" />
+                    <span>{{ f }}</span>
+                  </div>
+                </div>
+                <button class="tier-btn primary" @click="openPurchase">
+                  Upgrade Now <ArrowRight :size="14" />
+                </button>
               </div>
             </div>
 
-            <button class="btn-purchase" @click="openPurchase">
-              <Rocket :size="18" />
-              Get Trafexia Pro
-            </button>
+            <div class="footer">
+              <p>Already have a license? <button class="link-btn" @click="activePanel = 'activate'">Activate here</button></p>
+            </div>
           </div>
 
-          <!-- Already have key? -->
-          <div class="activate-link">
-            <span>Already have a license key?</span>
-            <button class="btn-link" @click="activePanel = 'activate'">
-              Activate here →
-            </button>
-          </div>
-
-          <!-- Testimonial -->
-          <div class="testimonial">
-            <div class="stars">
-              <Star v-for="i in 5" :key="i" :size="14" fill="#fbbf24" color="#fbbf24" />
+          <div v-if="activePanel === 'activate'" class="activate-panel">
+            <div class="header text-left">
+              <h2>Activate Pro</h2>
+              <p>Verify your license to unlock professional capabilities.</p>
             </div>
-            <p>"Trafexia replaced both Proxyman and Charles for me. The SSL bypass tools alone are worth it."</p>
-            <span class="author">— Developer, 1.1k+ GitHub Stars</span>
-          </div>
-        </div>
 
-        <!-- Activate Panel -->
-        <div v-if="activePanel === 'activate'" class="upgrade-body">
-          <div class="activate-form">
-            <div class="form-group">
-              <label>Email Address</label>
-              <input 
-                v-model="email"
-                type="email" 
-                placeholder="your@email.com"
-                class="form-input"
-              />
+            <div class="form-body">
+              <div class="input-group">
+                <label>Registered Email</label>
+                <div class="input-wrap">
+                  <Mail :size="14" class="icon" />
+                  <input v-model="email" type="email" placeholder="admin@example.com" />
+                </div>
+              </div>
+              <div class="input-group">
+                <label>License Key</label>
+                <div class="input-wrap">
+                  <KeyIcon :size="14" class="icon" />
+                  <input v-model="licenseKey" type="text" class="mono" placeholder="TRFX-XXXX-XXXX-XXXX" />
+                </div>
+              </div>
+              
+              <button class="activate-btn" @click="activate" :disabled="isActivating">
+                <Loader2 v-if="isActivating" class="animate-spin" :size="16" />
+                <span v-else>Verify Activation</span>
+              </button>
             </div>
-            <div class="form-group">
-              <label>License Key</label>
-              <input 
-                v-model="licenseKey"
-                type="text" 
-                placeholder="TRFX-XXXX-XXXX-XXXX-XXXX"
-                class="form-input mono"
-                maxlength="24"
-              />
-            </div>
-            
-            <button 
-              class="btn-activate" 
-              @click="activate"
-              :disabled="isActivating"
-            >
-              <Shield :size="18" />
-              {{ isActivating ? 'Activating...' : 'Activate License' }}
-            </button>
 
-            <button class="btn-back" @click="activePanel = 'info'">
-              ← Back to pricing
-            </button>
+            <div class="panel-footer">
+              <button class="back-btn" @click="activePanel = 'pricing'">← Back to comparison</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
 <style scoped>
-.upgrade-overlay {
+.pricing-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+  inset: 0;
+  background: rgba(2, 6, 23, 0.9);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  animation: fadeIn 0.2s ease;
+  padding: 20px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.upgrade-dialog {
-  background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
-  border: 1px solid rgba(88, 166, 255, 0.2);
-  border-radius: 20px;
-  width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
+.pricing-container {
+  width: 100%;
+  max-width: 720px;
+  background: #0B1120;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   position: relative;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(88, 166, 255, 0.1);
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
 }
 
 .close-btn {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: rgba(255, 255, 255, 0.1);
+  width: 28px;
+  height: 28px;
   border: none;
-  color: #8b949e;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #94A3B8;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  z-index: 1;
+  z-index: 20;
 }
 
-.close-btn:hover {
-  background: rgba(248, 81, 73, 0.2);
-  color: #f85149;
+.pricing-panel {
+  padding: 48px;
 }
 
-.upgrade-header {
+.header {
   text-align: center;
-  padding: 32px 32px 0;
+  margin-bottom: 40px;
 }
 
-.crown-icon {
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
-  color: #1a1f2e;
-  box-shadow: 0 8px 30px rgba(251, 191, 36, 0.3);
-}
-
-.upgrade-header h2 {
-  font-size: 24px;
+.header h2 {
+  font-size: 28px;
   font-weight: 700;
-  color: #e6edf3;
-  margin: 0 0 8px;
-}
-
-.subtitle {
-  color: #8b949e;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.subtitle strong {
-  color: #58a6ff;
-}
-
-.upgrade-body {
-  padding: 24px 32px 32px;
-}
-
-/* Pricing Card */
-.pricing-card {
-  background: linear-gradient(135deg, rgba(88, 166, 255, 0.08), rgba(136, 96, 208, 0.08));
-  border: 1px solid rgba(88, 166, 255, 0.2);
-  border-radius: 16px;
-  padding: 24px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.pricing-badge {
-  position: absolute;
-  top: 12px;
-  right: -28px;
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: #1a1f2e;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 4px 32px;
-  transform: rotate(35deg);
-  letter-spacing: 0.5px;
-}
-
-.pricing-tier {
-  font-size: 14px;
-  font-weight: 600;
-  color: #58a6ff;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  color: #F1F5F9;
   margin-bottom: 8px;
 }
 
-.pricing-price {
-  margin-bottom: 4px;
+.header p {
+  color: #94A3B8;
+  font-size: 15px;
 }
 
-.price-amount {
-  font-size: 48px;
-  font-weight: 800;
-  color: #e6edf3;
-  line-height: 1;
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
 }
 
-.price-period {
-  font-size: 18px;
-  color: #8b949e;
-  font-weight: 400;
-}
-
-.pricing-monthly {
-  font-size: 13px;
-  color: #6e7681;
-  margin-bottom: 20px;
-}
-
-.features-list {
-  text-align: left;
+.tier-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 32px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  position: relative;
+}
+
+.tier-card.pro {
+  background: rgba(56, 189, 248, 0.03);
+  border-color: rgba(56, 189, 248, 0.2);
+  box-shadow: 0 0 40px rgba(56, 189, 248, 0.05);
+}
+
+.pro-label {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #38BDF8;
+  color: #0F172A;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.tier-header {
   margin-bottom: 24px;
+}
+
+.tier-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.amount { font-size: 32px; font-weight: 700; color: #F1F5F9; }
+.period { font-size: 14px; color: #64748B; }
+
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex: 1;
 }
 
 .feature-item {
@@ -358,167 +292,101 @@ function openPurchase() {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #c9d1d9;
+  color: #94A3B8;
 }
 
-.feature-check {
-  color: #3fb950;
+.icon {
+  color: #64748B;
   flex-shrink: 0;
 }
 
-.btn-purchase {
-  width: 100%;
-  padding: 14px 24px;
-  background: linear-gradient(135deg, #58a6ff, #8860d0);
-  color: white;
+.icon.pro {
+  color: #38BDF8;
+}
+
+.tier-btn {
+  height: 40px;
   border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.3s;
-  box-shadow: 0 8px 25px rgba(88, 166, 255, 0.3);
-}
-
-.btn-purchase:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(88, 166, 255, 0.4);
-}
-
-/* Activate Link */
-.activate-link {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 13px;
-  color: #6e7681;
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  color: #58a6ff;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 0;
-  margin-left: 4px;
-}
-
-.btn-link:hover {
-  text-decoration: underline;
-}
-
-/* Testimonial */
-.testimonial {
-  margin-top: 24px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  text-align: center;
-}
-
-.stars {
-  display: flex;
-  justify-content: center;
-  gap: 2px;
-  margin-bottom: 8px;
-}
-
-.testimonial p {
-  font-size: 13px;
-  color: #c9d1d9;
-  font-style: italic;
-  margin: 0 0 8px;
-  line-height: 1.5;
-}
-
-.testimonial .author {
-  font-size: 12px;
-  color: #6e7681;
-}
-
-/* Activate Form */
-.activate-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-group label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #8b949e;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.form-input {
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(48, 54, 61, 0.8);
-  border-radius: 10px;
-  color: #e6edf3;
+  border-radius: 8px;
   font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.form-input:focus {
-  border-color: #58a6ff;
-}
-
-.form-input.mono {
-  font-family: 'SF Mono', 'Consolas', monospace;
-  letter-spacing: 1px;
-}
-
-.btn-activate {
-  padding: 14px 24px;
-  background: linear-gradient(135deg, #3fb950, #2ea043);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.3s;
-  margin-top: 8px;
 }
 
-.btn-activate:hover:not(:disabled) {
+.tier-btn.primary {
+  background: #38BDF8;
+  color: #0F172A;
+}
+
+.tier-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #64748B;
+  cursor: default;
+}
+
+.tier-btn.primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 25px rgba(63, 185, 80, 0.3);
+  filter: brightness(1.1);
 }
 
-.btn-activate:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.footer {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 13px;
+  color: #64748B;
 }
 
-.btn-back {
+.link-btn {
   background: none;
   border: none;
-  color: #8b949e;
-  font-size: 13px;
+  color: #38BDF8;
+  font-weight: 600;
   cursor: pointer;
-  text-align: center;
-  padding: 8px;
 }
 
-.btn-back:hover {
-  color: #e6edf3;
+/* Activate Panel */
+.activate-panel { padding: 48px; }
+.form-body { display: flex; flex-direction: column; gap: 20px; }
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-group label { font-size: 12px; font-weight: 600; color: #94A3B8; text-transform: uppercase; }
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-wrap .icon { position: absolute; left: 12px; color: #64748B; }
+.input-wrap input {
+  width: 100%;
+  height: 44px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0 12px 0 38px;
+  color: #F1F5F9;
+  font-size: 14px;
 }
+.input-wrap input:focus { border-color: #38BDF8; outline: none; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+.activate-btn {
+  height: 44px;
+  background: #10B981;
+  color: #0F172A;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-footer { margin-top: 24px; text-align: center; }
+.back-btn { background: none; border: none; color: #64748B; font-size: 13px; cursor: pointer; }
+
+/* Transitions */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+.animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
