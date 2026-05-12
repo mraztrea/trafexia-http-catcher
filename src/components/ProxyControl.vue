@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { Play, Square, Loader2, Smartphone, Globe, ShieldCheck } from 'lucide-vue-next';
 import { useProxyStore } from '@/stores/proxyStore';
+import AndroidBridgeDialog from './AndroidBridgeDialog.vue';
 
 const proxyStore = useProxyStore();
 
@@ -34,6 +35,16 @@ async function launchEmulator() {
     console.error('Failed to launch emulator:', error);
   }
 }
+
+const showAndroidBridge = ref(false);
+
+async function launchSimulator() {
+  try {
+    await window.electronAPI.launchSimulator();
+  } catch (error) {
+    console.error('Failed to launch simulator:', error);
+  }
+}
 </script>
 
 <template>
@@ -57,12 +68,23 @@ async function launchEmulator() {
       <!-- Emulator Bridge -->
       <button 
         class="eg-btn-bridge" 
-        @click="launchEmulator" 
+        @click="showAndroidBridge = true" 
         :disabled="!proxyStore.isRunning"
-        title="Bridge to Android Emulator"
+        title="Bridge to Android Device"
       >
         <Smartphone :size="14" />
         <span>ANDROID BRIDGE</span>
+      </button>
+
+      <!-- iOS Simulator Bridge -->
+      <button 
+        class="eg-btn-bridge" 
+        @click="launchSimulator" 
+        :disabled="!proxyStore.isRunning"
+        title="Bridge to iOS Simulator"
+      >
+        <Smartphone :size="14" />
+        <span>iOS BRIDGE</span>
       </button>
     </div>
 
@@ -76,6 +98,9 @@ async function launchEmulator() {
         <span class="status-address" v-if="proxyStore.isRunning && proxyAddress">{{ proxyAddress }}</span>
       </div>
     </div>
+
+    <!-- Android Bridge Dialog -->
+    <AndroidBridgeDialog v-if="showAndroidBridge" @close="showAndroidBridge = false" />
   </div>
 </template>
 

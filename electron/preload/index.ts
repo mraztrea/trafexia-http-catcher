@@ -86,6 +86,21 @@ const api: IpcApi = {
   launchEmulator: (): Promise<boolean> => {
     return ipcRenderer.invoke(IPC_CHANNELS.LAUNCH_EMULATOR);
   },
+  launchSimulator: (): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LAUNCH_SIMULATOR);
+  },
+  getAndroidDevices: (): Promise<AndroidDevice[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_GET_DEVICES);
+  },
+  bridgeAndroidDevice: (deviceId: string): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_BRIDGE_DEVICE, deviceId);
+  },
+  getAndroidAvds: (): Promise<string[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_GET_AVDS);
+  },
+  launchAndroidAvd: (name: string): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_LAUNCH_AVD, name);
+  },
 
   // Request Replay & Composer
   replayRequest: (id: number): Promise<CapturedRequest> => {

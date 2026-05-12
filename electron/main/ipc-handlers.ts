@@ -10,6 +10,7 @@ import type { RequestComposer } from './services/RequestComposer';
 import type { LicenseService } from './services/LicenseService';
 import type { MapService } from './services/MapService';
 import type { ThrottleService } from './services/ThrottleService';
+import type { AndroidService } from './services/AndroidService';
 import type {
   ProxyConfig,
   ProxyStatus,
@@ -42,11 +43,12 @@ interface Services {
   licenseService: LicenseService;
   mapService: MapService;
   throttleService: ThrottleService;
+  androidService: AndroidService;
   mainWindow: () => BrowserWindow | null;
 }
 
 export function setupIpcHandlers(services: Services): void {
-  const { certificateManager, proxyServer, trafficStorage, certServer, breakpointService, mockService, requestComposer, licenseService, mapService, throttleService, mainWindow } = services;
+  const { certificateManager, proxyServer, trafficStorage, certServer, breakpointService, mockService, requestComposer, licenseService, mapService, throttleService, androidService, mainWindow } = services;
 
   /**
    * Server-side feature gate enforcement.
@@ -395,6 +397,67 @@ export function setupIpcHandlers(services: Services): void {
       return true;
     } catch (error) {
       console.error('[IPC] Failed to launch emulator:', error);
+      throw error;
+    }
+  });
+  
+  ipcMain.handle(IPC_CHANNELS.LAUNCH_SIMULATOR, async (): Promise<boolean> => {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    try {
+      if (process.platform !== 'darwin') {
+        throw new Error('iOS Simulator is only available on macOS');
+      }
+
+      console.log('[IPC] Launching iOS Simulator...');
+      // Just opening the app will boot the last used simulator
+      await execAsync('open -a Simulator');
+      
+      return true;
+    } catch (error) {
+      console.error('[IPC] Failed to launch simulator:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_GET_DEVICES, async (): Promise<AndroidDevice[]> => {
+    try {
+      return await androidService.listDevices();
+    } catch (error) {
+      console.error('[IPC] Failed to get Android devices:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_BRIDGE_DEVICE, async (_event, deviceId: string): Promise<boolean> => {
+    try {
+      const settings = loadSettings(trafficStorage);
+      const localIp = getLocalIp();
+      const proxyUrl = `${localIp}:${settings.proxyPort}`;
+      
+      return await androidService.bridgeDevice(deviceId, proxyUrl);
+    } catch (error) {
+      console.error('[IPC] Failed to bridge Android device:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_GET_AVDS, async (): Promise<string[]> => {
+    try {
+      return await androidService.listAvds();
+    } catch (error) {
+      console.error('[IPC] Failed to get Android AVDs:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_LAUNCH_AVD, async (_event, name: string): Promise<boolean> => {
+    try {
+      return await androidService.launchAvd(name);
+    } catch (error) {
+      console.error('[IPC] Failed to launch Android AVD:', error);
       throw error;
     }
   });

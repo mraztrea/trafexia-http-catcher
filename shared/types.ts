@@ -251,6 +251,11 @@ export const IPC_CHANNELS = {
   // Browser/Emulator
   LAUNCH_BROWSER: "app:launch-browser",
   LAUNCH_EMULATOR: "app:launch-emulator",
+  LAUNCH_SIMULATOR: "app:launch-simulator",
+  ANDROID_GET_DEVICES: "android:get-devices",
+  ANDROID_BRIDGE_DEVICE: "android:bridge-device",
+  ANDROID_GET_AVDS: "android:get-avds",
+  ANDROID_LAUNCH_AVD: "android:launch-avd",
 
   // Request Replay & Composer
   REQUEST_REPLAY: "request:replay",
@@ -405,6 +410,15 @@ export const FEATURE_GATES: Record<string, LicenseTier> = {
   "team-collaboration": "team",
 };
 
+// ===== Android Device =====
+export interface AndroidDevice {
+  id: string;
+  model: string;
+  type: "emulator" | "physical";
+  isRooted: boolean;
+  status: string;
+}
+
 // ===== Session =====
 export interface SavedSession {
   id: string;
@@ -444,6 +458,11 @@ export interface IpcApi {
   // Browser/Emulator
   launchBrowser: (browser: "chrome" | "firefox" | "edge") => Promise<boolean>;
   launchEmulator: () => Promise<boolean>;
+  launchSimulator: () => Promise<boolean>;
+  getAndroidDevices: () => Promise<AndroidDevice[]>;
+  bridgeAndroidDevice: (deviceId: string) => Promise<boolean>;
+  getAndroidAvds: () => Promise<string[]>;
+  launchAndroidAvd: (name: string) => Promise<boolean>;
 
   // Request Replay & Composer
   replayRequest: (id: number) => Promise<CapturedRequest>;
