@@ -9,6 +9,8 @@ import type { CertificateManager } from './CertificateManager';
 import type { TrafficStorage } from './TrafficStorage';
 import type { BreakpointService } from './BreakpointService';
 import type { MockService } from './MockService';
+import type { MapService } from './MapService';
+import type { ThrottleService } from './ThrottleService';
 import type { CapturedRequest, ProxyConfig, ProxyStatus } from '../../../shared/types';
 import { getLocalIp } from '../utils/network';
 
@@ -19,6 +21,8 @@ export class ProxyServer extends EventEmitter {
   private storage: TrafficStorage;
   private breakpointService?: BreakpointService;
   private mockService?: MockService;
+  private mapService?: MapService;
+  private throttleService?: ThrottleService;
   private config: ProxyConfig | null = null;
   private running = false;
   private certCache: Map<string, { key: string; cert: string }> = new Map();
@@ -28,13 +32,17 @@ export class ProxyServer extends EventEmitter {
     certManager: CertificateManager, 
     storage: TrafficStorage,
     breakpointService?: BreakpointService,
-    mockService?: MockService
+    mockService?: MockService,
+    mapService?: MapService,
+    throttleService?: ThrottleService
   ) {
     super();
     this.certManager = certManager;
     this.storage = storage;
     this.breakpointService = breakpointService;
     this.mockService = mockService;
+    this.mapService = mapService;
+    this.throttleService = throttleService;
   }
 
   /**
@@ -244,6 +252,57 @@ export class ProxyServer extends EventEmitter {
         }
       }
 
+      // Check for Map Local/Remote rules
+      if (this.mapService) {
+        const mapRule = this.mapService.findMatchingRule(clientReq.method || 'GET', requestUrl);
+        if (mapRule) {
+          if (mapRule.type === 'local') {
+            // Map Local: serve from local file
+            const localResponse = this.mapService.applyLocalMapping(mapRule);
+            if (localResponse) {
+              console.log('[ProxyServer] Map Local matched:', mapRule.name);
+              const capturedRequest: Omit<CapturedRequest, 'id'> = {
+                timestamp: startTime,
+                method: clientReq.method || 'GET',
+                url: requestUrl,
+                host: parsedUrl.hostname,
+                path: parsedUrl.pathname + parsedUrl.search,
+                status: localResponse.status,
+                requestHeaders: this.headersToRecord(clientReq.headers),
+                requestBody: reqBodyStr || null,
+                responseHeaders: localResponse.headers,
+                responseBody: localResponse.body,
+                contentType: localResponse.headers['content-type'] || 'text/plain',
+                duration: Date.now() - startTime,
+                size: Buffer.byteLength(localResponse.body),
+              };
+              const requestId = this.storage.saveRequest(capturedRequest);
+              const saved = this.storage.getRequestById(requestId);
+              if (saved) this.emit('request:complete', saved);
+
+              clientRes.writeHead(localResponse.status, localResponse.headers);
+              clientRes.end(localResponse.body);
+              return;
+            }
+          } else if (mapRule.type === 'remote') {
+            // Map Remote: rewrite URL
+            const newUrl = this.mapService.applyRemoteMapping(mapRule, requestUrl);
+            console.log('[ProxyServer] Map Remote:', requestUrl, '->', newUrl);
+            try {
+              const newParsed = new url.URL(newUrl);
+              options.hostname = newParsed.hostname;
+              options.port = newParsed.port || 80;
+              options.path = newParsed.pathname + newParsed.search;
+              if (!mapRule.preserveHost) {
+                (options.headers as Record<string, unknown>)['host'] = newParsed.host;
+              }
+            } catch (e) {
+              console.error('[ProxyServer] Invalid Map Remote URL:', newUrl);
+            }
+          }
+        }
+      }
+
       // Check for breakpoint on request
       if (this.breakpointService?.shouldBreak('request', clientReq.method || 'GET', requestUrl)) {
         try {
@@ -420,7 +479,17 @@ export class ProxyServer extends EventEmitter {
     tlsSocket.on('error', (err) => {
       // Suppress common errors for apps with cert pinning or unsupported protocols
       const msg = err.message || '';
-      const suppressedErrors = ['ECONNRESET', 'EPIPE', 'UNSUPPORTED_PROTOCOL', 'INAPPROPRIATE_FALLBACK', 'UNEXPECTED_MESSAGE', 'bad decrypt'];
+      const suppressedErrors = [
+        'ECONNRESET', 
+        'EPIPE', 
+        'UNSUPPORTED_PROTOCOL', 
+        'INAPPROPRIATE_FALLBACK', 
+        'UNEXPECTED_MESSAGE', 
+        'bad decrypt',
+        'CERTIFICATE_UNKNOWN', // Client rejected our cert
+        'UNKNOWN_CA',          // Client doesn't know our CA
+        'BAD_CERTIFICATE'      // Client found something wrong with the cert
+      ];
       if (!suppressedErrors.some(e => msg.includes(e))) {
         console.error('[ProxyServer] TLS error:', msg);
       }
@@ -521,6 +590,61 @@ export class ProxyServer extends EventEmitter {
           this.sendMockResponseToHttpsClient(mockRule, startTime, fullUrl, hostname, path, method, reqHeaders, body, clientSocket);
         }
         return; // Don't make real request
+      }
+    }
+
+    // Check for Map Local/Remote rules (HTTPS)
+    if (this.mapService) {
+      const mapRule = this.mapService.findMatchingRule(method, fullUrl);
+      if (mapRule) {
+        if (mapRule.type === 'local') {
+          const localResponse = this.mapService.applyLocalMapping(mapRule);
+          if (localResponse) {
+            console.log('[ProxyServer] Map Local matched (HTTPS):', mapRule.name);
+            const capturedReq: Omit<CapturedRequest, 'id'> = {
+              timestamp: startTime,
+              method, url: fullUrl, host: hostname, path,
+              status: localResponse.status,
+              requestHeaders: reqHeaders,
+              requestBody: body.length > 0 ? body.toString('utf-8') : null,
+              responseHeaders: localResponse.headers,
+              responseBody: localResponse.body,
+              contentType: localResponse.headers['content-type'] || 'text/plain',
+              duration: Date.now() - startTime,
+              size: Buffer.byteLength(localResponse.body),
+            };
+            const reqId = this.storage.saveRequest(capturedReq);
+            const saved = this.storage.getRequestById(reqId);
+            if (saved) this.emit('request:complete', saved);
+
+            if (clientSocket.writable && !clientSocket.destroyed) {
+              const bodyBuf = Buffer.from(localResponse.body);
+              let resHead = `HTTP/1.1 ${localResponse.status} OK\r\n`;
+              for (const [k, v] of Object.entries(localResponse.headers)) {
+                resHead += `${k}: ${v}\r\n`;
+              }
+              resHead += `Content-Length: ${bodyBuf.length}\r\n\r\n`;
+              clientSocket.write(resHead);
+              clientSocket.write(bodyBuf);
+            }
+            return;
+          }
+        } else if (mapRule.type === 'remote' && mapRule.destinationUrl) {
+          // Map Remote: rewrite target
+          const newUrl = this.mapService.applyRemoteMapping(mapRule, fullUrl);
+          console.log('[ProxyServer] Map Remote (HTTPS):', fullUrl, '->', newUrl);
+          try {
+            const newParsed = new URL(newUrl);
+            hostname = newParsed.hostname;
+            port = parseInt(newParsed.port) || 443;
+            path = newParsed.pathname + newParsed.search;
+            if (!mapRule.preserveHost) {
+              outHeaders['host'] = newParsed.host;
+            }
+          } catch (e) {
+            console.error('[ProxyServer] Invalid Map Remote URL:', newUrl);
+          }
+        }
       }
     }
 
@@ -644,6 +768,14 @@ export class ProxyServer extends EventEmitter {
         if (!clientSocket.writable || clientSocket.destroyed) {
           console.error('[ProxyServer] Client socket is not writable, skipping response');
           return;
+        }
+
+        // Apply throttle delay if enabled
+        if (this.throttleService?.isEnabled() && this.throttleService.shouldThrottle(fullUrl)) {
+          const delay = this.throttleService.calculateDelay(originalBodyBuffer.length, 'download');
+          if (delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
         }
 
         let responseHead = `HTTP/1.1 ${proxyRes.statusCode} ${proxyRes.statusMessage || ''}\r\n`;

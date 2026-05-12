@@ -7,6 +7,9 @@ import { CertServer } from './services/CertServer';
 import { BreakpointService } from './services/BreakpointService';
 import { MockService } from './services/MockService';
 import { RequestComposer } from './services/RequestComposer';
+import { LicenseService } from './services/LicenseService';
+import { MapService } from './services/MapService';
+import { ThrottleService } from './services/ThrottleService';
 import { setupIpcHandlers } from './ipc-handlers';
 import { setupSslBypassIpc, cleanupFridaProcess } from '../ssl-bypass/ssl-bypass-ipc';
 import { getLocalIp } from './utils/network';
@@ -19,6 +22,9 @@ let certServer: CertServer;
 let breakpointService: BreakpointService;
 let mockService: MockService;
 let requestComposer: RequestComposer;
+let licenseService: LicenseService;
+let mapService: MapService;
+let throttleService: ThrottleService;
 let mainWindow: BrowserWindow | null = null;
 
 // Disable hardware acceleration for better compatibility
@@ -89,12 +95,18 @@ const initializeServices = async () => {
   breakpointService = new BreakpointService();
   mockService = new MockService(trafficStorage);
   requestComposer = new RequestComposer();
+  licenseService = new LicenseService(trafficStorage);
+  mapService = new MapService(trafficStorage);
+  throttleService = new ThrottleService(trafficStorage);
 
-  // Load mock rules from database
+  // Load rules and initialize
   await mockService.loadRules();
+  await licenseService.initialize();
+  await mapService.loadRules();
+  await throttleService.initialize();
 
-  // Initialize proxy server with new services
-  proxyServer = new ProxyServer(certificateManager, trafficStorage, breakpointService, mockService);
+  // Initialize proxy server with all services
+  proxyServer = new ProxyServer(certificateManager, trafficStorage, breakpointService, mockService, mapService, throttleService);
 
   // Setup IPC handlers
   setupIpcHandlers({
@@ -105,6 +117,9 @@ const initializeServices = async () => {
     breakpointService,
     mockService,
     requestComposer,
+    licenseService,
+    mapService,
+    throttleService,
     mainWindow: () => mainWindow,
   });
 

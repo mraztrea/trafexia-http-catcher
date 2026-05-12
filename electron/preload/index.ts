@@ -11,6 +11,10 @@ import type {
   BreakpointConfig,
   InterceptedRequest,
   MockRule,
+  MapRule,
+  ThrottleProfile,
+  LicenseInfo,
+  SavedSession,
   PatchResult,
   FridaArch,
   BypassFramework,
@@ -121,6 +125,79 @@ const api: IpcApi = {
     return ipcRenderer.invoke(IPC_CHANNELS.MOCK_TOGGLE_RULE, id, enabled);
   },
 
+  // SSL Bypass
+  patchApk: (inputPath: string, outputPath: string): Promise<PatchResult> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_PATCH_APK, inputPath, outputPath);
+  },
+  injectGadget: (apkPath: string, arch: FridaArch, outputPath: string): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_INJECT_GADGET, apkPath, arch, outputPath);
+  },
+  startFrida: (packageName: string, framework: BypassFramework): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_START_FRIDA, packageName, framework);
+  },
+  stopFrida: (): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_STOP_FRIDA);
+  },
+  getDetectedHosts: (): Promise<DetectedPinningHost[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_GET_DETECTED_HOSTS);
+  },
+
+  // Map Rules (Pro)
+  getMapRules: (): Promise<MapRule[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_GET_RULES);
+  },
+  addMapRule: (rule: Omit<MapRule, 'id'>): Promise<MapRule> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_ADD_RULE, rule);
+  },
+  updateMapRule: (id: string, rule: Partial<MapRule>): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_UPDATE_RULE, id, rule);
+  },
+  deleteMapRule: (id: string): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_DELETE_RULE, id);
+  },
+  toggleMapRule: (id: string, enabled: boolean): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_TOGGLE_RULE, id, enabled);
+  },
+
+  // Throttle (Pro)
+  setThrottleProfile: (profile: ThrottleProfile): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.THROTTLE_SET_PROFILE, profile);
+  },
+  getThrottleProfile: (): Promise<ThrottleProfile> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.THROTTLE_GET_PROFILE);
+  },
+  disableThrottle: (): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.THROTTLE_DISABLE);
+  },
+
+  // License
+  getLicense: (): Promise<LicenseInfo> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET);
+  },
+  activateLicense: (key: string, email: string): Promise<LicenseInfo> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_ACTIVATE, key, email);
+  },
+  deactivateLicense: (): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_DEACTIVATE);
+  },
+  getFeatureGates: (): Promise<Record<string, LicenseTier>> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET_FEATURE_GATES);
+  },
+
+  // Session (Pro)
+  saveSession: (name: string, description?: string): Promise<SavedSession> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_SAVE, name, description);
+  },
+  loadSession: (id: string): Promise<CapturedRequest[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_LOAD, id);
+  },
+  listSessions: (): Promise<SavedSession[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_LIST);
+  },
+  deleteSession: (id: string): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_DELETE, id);
+  },
+
   // Events
   onRequestCaptured: (callback: (request: CapturedRequest) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, request: CapturedRequest) => {
@@ -150,23 +227,6 @@ const api: IpcApi = {
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.BREAKPOINT_REQUEST_PENDING, handler);
     };
-  },
-
-  // SSL Bypass
-  patchApk: (inputPath: string, outputPath: string): Promise<PatchResult> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_PATCH_APK, inputPath, outputPath);
-  },
-  injectGadget: (apkPath: string, arch: FridaArch, outputPath: string): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_INJECT_GADGET, apkPath, arch, outputPath);
-  },
-  startFrida: (packageName: string, framework: BypassFramework): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_START_FRIDA, packageName, framework);
-  },
-  stopFrida: (): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_STOP_FRIDA);
-  },
-  getDetectedHosts: (): Promise<DetectedPinningHost[]> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_GET_DETECTED_HOSTS);
   },
 
   // SSL Bypass Events

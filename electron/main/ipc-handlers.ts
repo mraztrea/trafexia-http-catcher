@@ -7,6 +7,9 @@ import type { CertServer } from './services/CertServer';
 import type { BreakpointService } from './services/BreakpointService';
 import type { MockService } from './services/MockService';
 import type { RequestComposer } from './services/RequestComposer';
+import type { LicenseService } from './services/LicenseService';
+import type { MapService } from './services/MapService';
+import type { ThrottleService } from './services/ThrottleService';
 import type {
   ProxyConfig,
   ProxyStatus,
@@ -19,7 +22,10 @@ import type {
   ComposedRequest,
   BreakpointConfig,
   InterceptedRequest,
-  MockRule
+  MockRule,
+  MapRule,
+  ThrottleProfile,
+  LicenseInfo
 } from '../../shared/types';
 import { IPC_CHANNELS, DEFAULT_SETTINGS } from '../../shared/types';
 import { getLocalIp } from './utils/network';
@@ -32,11 +38,14 @@ interface Services {
   breakpointService: BreakpointService;
   mockService: MockService;
   requestComposer: RequestComposer;
+  licenseService: LicenseService;
+  mapService: MapService;
+  throttleService: ThrottleService;
   mainWindow: () => BrowserWindow | null;
 }
 
 export function setupIpcHandlers(services: Services): void {
-  const { certificateManager, proxyServer, trafficStorage, certServer, breakpointService, mockService, requestComposer, mainWindow } = services;
+  const { certificateManager, proxyServer, trafficStorage, certServer, breakpointService, mockService, requestComposer, licenseService, mapService, throttleService, mainWindow } = services;
 
   // ===== Proxy Control =====
 
@@ -50,11 +59,32 @@ export function setupIpcHandlers(services: Services): void {
       // Start proxy server
       const status = await proxyServer.start(config);
 
-      // Listen for captured requests and forward to renderer
-      proxyServer.on('request:complete', (request: CapturedRequest) => {
+      // Listen for captured requests and forward to renderer with batching
+      let requestBuffer: CapturedRequest[] = [];
+      let batchTimeout: NodeJS.Timeout | null = null;
+
+      const sendBatch = () => {
+        if (requestBuffer.length === 0) return;
+        
         const win = mainWindow();
         if (win && !win.isDestroyed()) {
-          win.webContents.send(IPC_CHANNELS.REQUEST_CAPTURED, request);
+          // Send as an array if multiple, or single if one
+          win.webContents.send(IPC_CHANNELS.REQUEST_CAPTURED, requestBuffer.length === 1 ? requestBuffer[0] : requestBuffer);
+        }
+        requestBuffer = [];
+        if (batchTimeout) {
+          clearTimeout(batchTimeout);
+          batchTimeout = null;
+        }
+      };
+
+      proxyServer.on('request:complete', (request: CapturedRequest) => {
+        requestBuffer.push(request);
+        
+        if (requestBuffer.length >= 50) {
+          sendBatch();
+        } else if (!batchTimeout) {
+          batchTimeout = setTimeout(sendBatch, 100);
         }
       });
 
@@ -490,6 +520,67 @@ export function setupIpcHandlers(services: Services): void {
       console.error('[IPC] Failed to toggle mock rule:', error);
       throw error;
     }
+  });
+
+  // ===== Map Rules (Pro) =====
+
+  ipcMain.handle(IPC_CHANNELS.MAP_GET_RULES, async (): Promise<MapRule[]> => {
+    return mapService.getRules();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MAP_ADD_RULE, async (_event, rule: Omit<MapRule, 'id'>): Promise<MapRule> => {
+    try {
+      const newRule = mapService.addRule(rule);
+      console.log('[IPC] Map rule added:', newRule.name);
+      return newRule;
+    } catch (error) {
+      console.error('[IPC] Failed to add map rule:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MAP_UPDATE_RULE, async (_event, id: string, updates: Partial<MapRule>): Promise<void> => {
+    mapService.updateRule(id, updates);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MAP_DELETE_RULE, async (_event, id: string): Promise<void> => {
+    mapService.deleteRule(id);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MAP_TOGGLE_RULE, async (_event, id: string, enabled: boolean): Promise<void> => {
+    mapService.toggleRule(id, enabled);
+  });
+
+  // ===== Throttle (Pro) =====
+
+  ipcMain.handle(IPC_CHANNELS.THROTTLE_GET_PROFILE, async (): Promise<ThrottleProfile> => {
+    return throttleService.getProfile();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.THROTTLE_SET_PROFILE, async (_event, profile: ThrottleProfile): Promise<void> => {
+    throttleService.setProfile(profile);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.THROTTLE_DISABLE, async (): Promise<void> => {
+    throttleService.disable();
+  });
+
+  // ===== License =====
+
+  ipcMain.handle(IPC_CHANNELS.LICENSE_GET, async (): Promise<LicenseInfo> => {
+    return licenseService.getLicense();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LICENSE_ACTIVATE, async (_event, key: string, email: string): Promise<LicenseInfo> => {
+    return licenseService.activateLicense(key, email);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LICENSE_DEACTIVATE, async (): Promise<void> => {
+    return licenseService.deactivateLicense();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LICENSE_GET_FEATURE_GATES, async (): Promise<Record<string, LicenseTier>> => {
+    return licenseService.getFeatureGates();
   });
 }
 

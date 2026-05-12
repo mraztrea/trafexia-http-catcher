@@ -128,21 +128,36 @@ const displayRequests = computed(() => {
     const selected = filteredRequests.value.find(r => r.id === trafficStore.selectedRequest?.id);
     return selected ? [selected] : [];
   }
-  return filteredRequests.value;
+  // Limit to 500 most recent for performance
+  return filteredRequests.value.slice(0, 500);
 });
 
-// Calculate timeline dimensions
+// Calculate timeline dimensions efficiently
 const minTimestamp = computed(() => {
-  if (displayRequests.value.length === 0) return 0;
-  return Math.min(...displayRequests.value.map(r => r.timestamp));
+  const reqs = displayRequests.value;
+  if (reqs.length === 0) return 0;
+  let min = reqs[0].timestamp;
+  for (let i = 1; i < reqs.length; i++) {
+    if (reqs[i].timestamp < min) min = reqs[i].timestamp;
+  }
+  return min;
 });
 
 const maxTimestamp = computed(() => {
-  if (displayRequests.value.length === 0) return 0;
-  return Math.max(...displayRequests.value.map(r => r.timestamp + r.duration));
+  const reqs = displayRequests.value;
+  if (reqs.length === 0) return 0;
+  let max = reqs[0].timestamp + reqs[0].duration;
+  for (let i = 1; i < reqs.length; i++) {
+    const end = reqs[i].timestamp + reqs[i].duration;
+    if (end > max) max = end;
+  }
+  return max;
 });
 
-const timeRange = computed(() => maxTimestamp.value - minTimestamp.value);
+const timeRange = computed(() => {
+  const range = maxTimestamp.value - minTimestamp.value;
+  return range === 0 ? 1 : range; // Avoid division by zero
+});
 
 const timelineWidth = computed(() => {
   const baseWidth = 1000;

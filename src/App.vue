@@ -14,6 +14,10 @@ import {
   Pencil,
   ShieldCheck,
   Lock,
+  Gauge,
+  GitCompare,
+  Crown,
+  Map,
 } from "lucide-vue-next";
 import { useToast } from "primevue/usetoast";
 
@@ -22,6 +26,7 @@ import { generatePostmanCollection } from "./utils/postmanExport";
 import { useTrafficStore } from "@/stores/trafficStore";
 import { useProxyStore } from "@/stores/proxyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useLicenseStore } from "@/stores/licenseStore";
 
 import ProxyControl from "@/components/ProxyControl.vue";
 import RequestList from "@/components/RequestList.vue";
@@ -33,10 +38,15 @@ import MockRulesManager from "@/components/MockRulesManager.vue";
 import BreakpointEditor from "@/components/BreakpointEditor.vue";
 import TimelineView from "@/components/TimelineView.vue";
 import SslBypassView from "@/components/SslBypassView.vue";
+import LicenseDialog from "@/components/LicenseDialog.vue";
+import ThrottleControl from "@/components/ThrottleControl.vue";
+import DiffViewer from "@/components/DiffViewer.vue";
+import MapRulesManager from "@/components/MapRulesManager.vue";
 
 const trafficStore = useTrafficStore();
 const proxyStore = useProxyStore();
 const settingsStore = useSettingsStore();
+const licenseStore = useLicenseStore();
 const toast = useToast();
 
 // State
@@ -46,6 +56,9 @@ const showQrCode = ref(false);
 const showComposer = ref(false);
 const showMockRules = ref(false);
 const showSslBypass = ref(false);
+const showThrottle = ref(false);
+const showDiff = ref(false);
+const showMapRules = ref(false);
 const viewMode = ref<"list" | "timeline">("list");
 
 // Computed
@@ -65,6 +78,7 @@ function handleProxyError(error: string) {
 onMounted(async () => {
   await settingsStore.loadSettings();
   await trafficStore.loadRequests();
+  await licenseStore.loadLicense();
 
   window.electronAPI.onRequestCaptured(handleRequestCaptured);
   window.electronAPI.onProxyError(handleProxyError);
@@ -217,6 +231,15 @@ function exportPostman() {
           <ShieldCheck class="w-5 h-5" />
         </button>
 
+        <!-- Map Local/Remote -->
+        <button
+          class="btn btn-ghost btn-icon"
+          @click="licenseStore.guardFeature('map-rules') && (showMapRules = true)"
+          title="Map Local / Remote"
+        >
+          <Map class="w-5 h-5" />
+        </button>
+
         <!-- SSL Bypass -->
         <button
           class="btn btn-ghost btn-icon"
@@ -224,6 +247,24 @@ function exportPostman() {
           title="SSL Pinning Bypass"
         >
           <Lock class="w-5 h-5" />
+        </button>
+
+        <!-- Throttle -->
+        <button
+          class="btn btn-ghost btn-icon"
+          @click="showThrottle = !showThrottle"
+          title="Network Throttle"
+        >
+          <Gauge class="w-5 h-5" />
+        </button>
+
+        <!-- Diff Compare -->
+        <button
+          class="btn btn-ghost btn-icon"
+          @click="licenseStore.guardFeature('diff-compare') && (showDiff = true)"
+          title="Request Diff / Compare"
+        >
+          <GitCompare class="w-5 h-5" />
         </button>
 
         <!-- View Mode Toggle -->
@@ -289,6 +330,17 @@ function exportPostman() {
           title="Settings"
         >
           <Settings class="w-5 h-5" />
+        </button>
+
+        <!-- License Badge -->
+        <button
+          class="license-badge"
+          :class="licenseStore.isFree ? 'free' : 'pro'"
+          @click="licenseStore.showUpgradeDialog = true"
+          :title="`Trafexia ${licenseStore.tierLabel}`"
+        >
+          <Crown :size="14" v-if="licenseStore.isPro" />
+          <span>{{ licenseStore.tierLabel }}</span>
         </button>
       </div>
     </header>
@@ -386,11 +438,27 @@ function exportPostman() {
     <!-- Mock Rules Manager Dialog -->
     <MockRulesManager v-if="showMockRules" @close="showMockRules = false" />
 
+    <!-- Map Rules Manager Dialog -->
+    <MapRulesManager v-if="showMapRules" @close="showMapRules = false" />
+
     <!-- SSL Bypass View -->
     <SslBypassView v-if="showSslBypass" @close="showSslBypass = false" />
 
     <!-- Breakpoint Editor -->
     <BreakpointEditor />
+
+    <!-- License Dialog -->
+    <LicenseDialog />
+
+    <!-- Diff Viewer -->
+    <DiffViewer v-if="showDiff" @close="showDiff = false" />
+
+    <!-- Throttle Panel (floating) -->
+    <Teleport to="body">
+      <div v-if="showThrottle" class="throttle-floating">
+        <ThrottleControl @close="showThrottle = false" />
+      </div>
+    </Teleport>
 
     <!-- QR Code Dialog -->
     <Dialog
@@ -659,5 +727,60 @@ function exportPostman() {
 .view-toggle-btn.active {
   background: var(--color-accent);
   color: white;
+}
+
+/* License Badge */
+.license-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.license-badge.free {
+  background: rgba(139, 148, 158, 0.1);
+  color: #8b949e;
+  border-color: rgba(139, 148, 158, 0.2);
+}
+
+.license-badge.free:hover {
+  background: rgba(88, 166, 255, 0.1);
+  color: #58a6ff;
+  border-color: rgba(88, 166, 255, 0.3);
+}
+
+.license-badge.pro {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.15));
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.license-badge.pro:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.25));
+}
+
+/* Throttle Floating Panel */
+.throttle-floating {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 5000;
+  width: 440px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 </style>

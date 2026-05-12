@@ -278,7 +278,121 @@ export const IPC_CHANNELS = {
   SSL_BYPASS_GET_DETECTED_HOSTS: "ssl-bypass:get-detected-hosts",
   SSL_BYPASS_FRIDA_LOG: "ssl-bypass:frida-log",
   SSL_BYPASS_HOST_DETECTED: "ssl-bypass:host-detected",
+
+  // Map Rules (Pro)
+  MAP_GET_RULES: "map:get-rules",
+  MAP_ADD_RULE: "map:add-rule",
+  MAP_UPDATE_RULE: "map:update-rule",
+  MAP_DELETE_RULE: "map:delete-rule",
+  MAP_TOGGLE_RULE: "map:toggle-rule",
+
+  // Throttle (Pro)
+  THROTTLE_SET_PROFILE: "throttle:set-profile",
+  THROTTLE_GET_PROFILE: "throttle:get-profile",
+  THROTTLE_DISABLE: "throttle:disable",
+
+  // License
+  LICENSE_GET: "license:get",
+  LICENSE_ACTIVATE: "license:activate",
+  LICENSE_DEACTIVATE: "license:deactivate",
+  LICENSE_GET_FEATURE_GATES: "license:get-feature-gates",
+
+  // Session (Pro)
+  SESSION_SAVE: "session:save",
+  SESSION_LOAD: "session:load",
+  SESSION_LIST: "session:list",
+  SESSION_DELETE: "session:delete",
 } as const;
+
+// ===== Map Rule (Map Local / Map Remote) =====
+export interface MapRule {
+  id: string;
+  enabled: boolean;
+  name: string;
+  type: "local" | "remote"; // Map to local file or remote URL
+  sourceUrlPattern: string; // Regex pattern to match
+  sourceMethod?: string; // Optional method filter
+  // For Map Remote
+  destinationUrl?: string; // Redirect to this URL
+  // For Map Local
+  localFilePath?: string; // Serve from local file
+  localResponseStatus?: number;
+  localResponseHeaders?: Record<string, string>;
+  // Common
+  preserveHost?: boolean; // Keep original Host header
+  created_at?: number;
+}
+
+// ===== Throttle Profile =====
+export interface ThrottleProfile {
+  enabled: boolean;
+  preset: ThrottlePreset | "custom";
+  // Custom values (bytes per second)
+  downloadSpeed: number;   // Download bandwidth limit (bytes/sec)
+  uploadSpeed: number;     // Upload bandwidth limit (bytes/sec)
+  latency: number;         // Additional latency in ms
+  packetLoss: number;      // Packet loss percentage (0-100)
+  urlPattern?: string;     // Optional: only throttle matching URLs
+}
+
+export type ThrottlePreset =
+  | "none"
+  | "gprs"      // 50 Kbps
+  | "edge"      // 250 Kbps
+  | "3g"        // 750 Kbps
+  | "3g-good"   // 1.5 Mbps
+  | "4g"        // 4 Mbps
+  | "dsl"       // 2 Mbps
+  | "wifi"      // 30 Mbps
+  | "custom";
+
+export const THROTTLE_PRESETS: Record<Exclude<ThrottlePreset, "custom" | "none">, { label: string; download: number; upload: number; latency: number }> = {
+  gprs:      { label: "GPRS (50 Kbps)",       download: 6250,     upload: 2500,    latency: 500 },
+  edge:      { label: "EDGE (250 Kbps)",      download: 31250,    upload: 12500,   latency: 300 },
+  "3g":      { label: "3G (750 Kbps)",        download: 93750,    upload: 31250,   latency: 200 },
+  "3g-good": { label: "3G Good (1.5 Mbps)",   download: 187500,   upload: 93750,   latency: 100 },
+  "4g":      { label: "4G/LTE (4 Mbps)",      download: 500000,   upload: 250000,  latency: 50 },
+  dsl:       { label: "DSL (2 Mbps)",         download: 250000,   upload: 62500,   latency: 20 },
+  wifi:      { label: "WiFi (30 Mbps)",       download: 3750000,  upload: 1875000, latency: 5 },
+};
+
+// ===== License =====
+export type LicenseTier = "free" | "pro" | "team";
+
+export interface LicenseInfo {
+  tier: LicenseTier;
+  licenseKey?: string;
+  email?: string;
+  expiresAt?: number; // Timestamp
+  activatedAt?: number;
+  machineId?: string;
+  isValid: boolean;
+}
+
+export const FEATURE_GATES: Record<string, LicenseTier> = {
+  "map-rules": "pro",
+  "throttle": "pro",
+  "diff-compare": "pro",
+  "advanced-export": "pro",
+  "session-save": "pro",
+  "ssl-bypass": "pro",
+  "unlimited-mock": "pro",
+  "unlimited-breakpoints": "pro",
+  "scripting": "pro",
+  "websocket": "pro",
+  "graphql": "pro",
+  "shared-sessions": "team",
+};
+
+// ===== Session =====
+export interface SavedSession {
+  id: string;
+  name: string;
+  description?: string;
+  requestCount: number;
+  createdAt: number;
+  size: number; // bytes
+}
 
 // ===== IPC Handler Types =====
 export interface IpcApi {
@@ -343,6 +457,30 @@ export interface IpcApi {
   ) => Promise<void>;
   stopFrida: () => Promise<void>;
   getDetectedHosts: () => Promise<DetectedPinningHost[]>;
+
+  // Map Rules (Pro)
+  getMapRules: () => Promise<MapRule[]>;
+  addMapRule: (rule: Omit<MapRule, "id">) => Promise<MapRule>;
+  updateMapRule: (id: string, rule: Partial<MapRule>) => Promise<void>;
+  deleteMapRule: (id: string) => Promise<void>;
+  toggleMapRule: (id: string, enabled: boolean) => Promise<void>;
+
+  // Throttle (Pro)
+  setThrottleProfile: (profile: ThrottleProfile) => Promise<void>;
+  getThrottleProfile: () => Promise<ThrottleProfile>;
+  disableThrottle: () => Promise<void>;
+
+  // License
+  getLicense: () => Promise<LicenseInfo>;
+  activateLicense: (key: string, email: string) => Promise<LicenseInfo>;
+  deactivateLicense: () => Promise<void>;
+  getFeatureGates: () => Promise<Record<string, LicenseTier>>;
+
+  // Session (Pro)
+  saveSession: (name: string, description?: string) => Promise<SavedSession>;
+  loadSession: (id: string) => Promise<CapturedRequest[]>;
+  listSessions: () => Promise<SavedSession[]>;
+  deleteSession: (id: string) => Promise<void>;
 
   // Events
   onRequestCaptured: (
