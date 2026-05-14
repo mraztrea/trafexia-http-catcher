@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, shallowRef, markRaw, watch } from 'vue';
 import type { CapturedRequest, FilterOptions } from '@shared/types';
 
 export const useTrafficStore = defineStore('traffic', () => {
   // State
-  const requests = ref<CapturedRequest[]>([]);
+  const requests = shallowRef<CapturedRequest[]>([]);
   const selectedRequest = ref<CapturedRequest | null>(null);
   const isLoading = ref(false);
   const totalCount = ref(0);
@@ -17,7 +17,13 @@ export const useTrafficStore = defineStore('traffic', () => {
     contentTypes: [],
     limit: 500,
     offset: 0,
+    useRegex: false,
+    searchInBody: false,
+    searchInHeaders: false,
   });
+
+  // Internal cache for searchable text to avoid repeated stringification
+  const searchableCache = new Map<number, string>();
 
   // Getters
   const requestCount = computed(() => requests.value.length);
@@ -42,60 +48,72 @@ export const useTrafficStore = defineStore('traffic', () => {
     return Array.from(types).sort();
   });
 
+  const debouncedSearchQuery = ref('');
+  let debounceTimeout: any = null;
+
+  watch(() => filter.value.searchQuery, (newVal) => {
+    if (debounceTimeout) clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+      debouncedSearchQuery.value = newVal || '';
+    }, 300);
+  });
+
   const filteredRequests = computed(() => {
-    let result = [...requests.value];
+    const allRequests = requests.value;
+    if (allRequests.length === 0) return [];
+
+    let result = [...allRequests];
+    const { useRegex, searchInBody, searchInHeaders, methods, statusCodes, minSize, maxSize, minDuration, maxDuration, hosts, contentTypes, dateRange } = filter.value;
+    const searchQuery = debouncedSearchQuery.value;
     
     // Search query
-    if (filter.value.searchQuery) {
-      const query = filter.value.searchQuery;
-      
-      if (filter.value.useRegex) {
+    if (searchQuery) {
+      if (useRegex) {
         try {
-          const regex = new RegExp(query, 'i');
+          const regex = new RegExp(searchQuery, 'i');
           result = result.filter(r => {
-            // Search in URL, host, path
-            if (regex.test(r.url) || regex.test(r.host) || regex.test(r.path)) {
-              return true;
-            }
+            if (regex.test(r.url) || regex.test(r.host) || regex.test(r.path)) return true;
             
-            // Search in body if enabled
-            if (filter.value.searchInBody) {
+            if (searchInBody) {
               if (r.requestBody && regex.test(r.requestBody)) return true;
               if (r.responseBody && regex.test(r.responseBody)) return true;
             }
             
-            // Search in headers if enabled
-            if (filter.value.searchInHeaders) {
-              const allHeaders = JSON.stringify(r.requestHeaders) + JSON.stringify(r.responseHeaders);
-              if (regex.test(allHeaders)) return true;
+            if (searchInHeaders) {
+              let headerText = searchableCache.get(r.id);
+              if (headerText === undefined) {
+                headerText = JSON.stringify(r.requestHeaders) + JSON.stringify(r.responseHeaders);
+                searchableCache.set(r.id, headerText);
+              }
+              if (regex.test(headerText)) return true;
             }
             
             return false;
           });
         } catch (e) {
-          // Invalid regex, skip filtering
           console.warn('Invalid regex:', e);
         }
       } else {
-        const lowerQuery = query.toLowerCase();
+        const lowerQuery = searchQuery.toLowerCase();
         result = result.filter(r => {
-          // Basic text search
           if (r.url.toLowerCase().includes(lowerQuery) || 
               r.host.toLowerCase().includes(lowerQuery) || 
               r.path.toLowerCase().includes(lowerQuery)) {
             return true;
           }
           
-          // Search in body if enabled
-          if (filter.value.searchInBody) {
+          if (searchInBody) {
             if (r.requestBody && r.requestBody.toLowerCase().includes(lowerQuery)) return true;
             if (r.responseBody && r.responseBody.toLowerCase().includes(lowerQuery)) return true;
           }
           
-          // Search in headers if enabled
-          if (filter.value.searchInHeaders) {
-            const allHeaders = JSON.stringify(r.requestHeaders) + JSON.stringify(r.responseHeaders);
-            if (allHeaders.toLowerCase().includes(lowerQuery)) return true;
+          if (searchInHeaders) {
+            let headerText = searchableCache.get(r.id);
+            if (headerText === undefined) {
+              headerText = (JSON.stringify(r.requestHeaders) + JSON.stringify(r.responseHeaders)).toLowerCase();
+              searchableCache.set(r.id, headerText);
+            }
+            if (headerText.includes(lowerQuery)) return true;
           }
           
           return false;
@@ -104,49 +122,39 @@ export const useTrafficStore = defineStore('traffic', () => {
     }
     
     // Methods
-    if (filter.value.methods && filter.value.methods.length > 0) {
-      result = result.filter(r => filter.value.methods!.includes(r.method));
+    if (methods && methods.length > 0) {
+      result = result.filter(r => methods.includes(r.method));
     }
     
     // Status codes
-    if (filter.value.statusCodes?.length) {
-			result = result.filter(r => filter.value.statusCodes!.some(code => r.status.toString().startsWith(code[0])));
-		}
+    if (statusCodes?.length) {
+      result = result.filter(r => statusCodes.some(code => r.status.toString().startsWith(code[0])));
+    }
     
     // Size filtering
-    if (filter.value.minSize !== null && filter.value.minSize !== undefined) {
-      result = result.filter(r => r.size >= filter.value.minSize!);
-    }
-    if (filter.value.maxSize !== null && filter.value.maxSize !== undefined) {
-      result = result.filter(r => r.size <= filter.value.maxSize!);
-    }
+    if (minSize !== null && minSize !== undefined) result = result.filter(r => r.size >= minSize);
+    if (maxSize !== null && maxSize !== undefined) result = result.filter(r => r.size <= maxSize);
     
     // Duration filtering
-    if (filter.value.minDuration !== null && filter.value.minDuration !== undefined) {
-      result = result.filter(r => r.duration >= filter.value.minDuration!);
-    }
-    if (filter.value.maxDuration !== null && filter.value.maxDuration !== undefined) {
-      result = result.filter(r => r.duration <= filter.value.maxDuration!);
-    }
+    if (minDuration !== null && minDuration !== undefined) result = result.filter(r => r.duration >= minDuration);
+    if (maxDuration !== null && maxDuration !== undefined) result = result.filter(r => r.duration <= maxDuration);
     
     // Hosts
-    if (filter.value.hosts && filter.value.hosts.length > 0) {
-      result = result.filter(r => filter.value.hosts!.includes(r.host));
-    }
+    if (hosts && hosts.length > 0) result = result.filter(r => hosts.includes(r.host));
     
     // Content types
-    if (filter.value.contentTypes && filter.value.contentTypes.length > 0) {
+    if (contentTypes && contentTypes.length > 0) {
       result = result.filter(r => {
         const ct = r.contentType.split(';')[0].trim();
-        return filter.value.contentTypes!.includes(ct);
+        return contentTypes.includes(ct);
       });
     }
     
     // Date range
-    if (filter.value.dateRange) {
+    if (dateRange) {
       result = result.filter(r => 
-        r.timestamp >= filter.value.dateRange!.start &&
-        r.timestamp <= filter.value.dateRange!.end
+        r.timestamp >= dateRange.start &&
+        r.timestamp <= dateRange.end
       );
     }
     
@@ -157,9 +165,12 @@ export const useTrafficStore = defineStore('traffic', () => {
   async function loadRequests(filterOptions?: FilterOptions) {
     isLoading.value = true;
     try {
-      const result = await window.electronAPI.getRequests(filterOptions || filter.value);
-      requests.value = result;
+      // Strip Vue reactivity proxies — IPC structured clone can't handle them
+      const plainFilter = JSON.parse(JSON.stringify(filterOptions || filter.value));
+      const result = await window.electronAPI.getRequests(plainFilter);
+      requests.value = result.map(r => markRaw(r));
       totalCount.value = await window.electronAPI.getRequestCount();
+      searchableCache.clear();
     } catch (error) {
       console.error('Failed to load requests:', error);
     } finally {
@@ -167,33 +178,59 @@ export const useTrafficStore = defineStore('traffic', () => {
     }
   }
 
-  function addRequest(request: CapturedRequest) {
-    // Add to beginning of array
-    requests.value.unshift(request);
-    totalCount.value++;
+  // Actions
+  let pendingRequests: CapturedRequest[] = [];
+  let updateTimeout: any = null;
+
+  function processPendingRequests() {
+    if (pendingRequests.length === 0) return;
+    
+    const newRequests = pendingRequests.map(r => markRaw(r));
+    pendingRequests = [];
+    
+    const updated = [...newRequests, ...requests.value];
     
     // Limit array size for performance
-    if (requests.value.length > 5000) {
-      requests.value = requests.value.slice(0, 5000);
+    if (updated.length > 5000) {
+      requests.value = updated.slice(0, 5000);
+      if (searchableCache.size > 6000) searchableCache.clear();
+    } else {
+      requests.value = updated;
+    }
+    
+    totalCount.value += newRequests.length;
+    updateTimeout = null;
+  }
+
+  function addRequest(request: CapturedRequest | CapturedRequest[]) {
+    const items = Array.isArray(request) ? request : [request];
+    pendingRequests.push(...items);
+    
+    if (!updateTimeout) {
+      // Throttle updates to ~4fps for smooth UI even under heavy load
+      updateTimeout = setTimeout(processPendingRequests, 250);
     }
   }
 
   function updateRequest(request: CapturedRequest) {
-    const index = requests.value.findIndex(r => r.id === request.id);
+    const rawRequest = markRaw(request);
+    const index = requests.value.findIndex(r => r.id === rawRequest.id);
     if (index !== -1) {
-      requests.value[index] = request;
+      // Direct update for status changes (e.g. pending to completed)
+      const updated = [...requests.value];
+      updated[index] = rawRequest;
+      requests.value = updated;
       
-      // Update selected if it's the same
-      if (selectedRequest.value?.id === request.id) {
-        selectedRequest.value = request;
+      if (selectedRequest.value?.id === rawRequest.id) {
+        selectedRequest.value = rawRequest;
       }
     } else {
-      addRequest(request);
+      addRequest(rawRequest);
     }
   }
 
   function setSelectedRequest(request: CapturedRequest | null) {
-    selectedRequest.value = request;
+    selectedRequest.value = request ? markRaw(request) : null;
   }
 
   function updateFilter(newFilter: Partial<FilterOptions>) {
@@ -209,6 +246,9 @@ export const useTrafficStore = defineStore('traffic', () => {
       contentTypes: [],
       limit: 500,
       offset: 0,
+      useRegex: false,
+      searchInBody: false,
+      searchInHeaders: false,
     };
   }
 
@@ -218,6 +258,7 @@ export const useTrafficStore = defineStore('traffic', () => {
       requests.value = [];
       selectedRequest.value = null;
       totalCount.value = 0;
+      searchableCache.clear();
     } catch (error) {
       console.error('Failed to clear requests:', error);
     }
@@ -231,6 +272,7 @@ export const useTrafficStore = defineStore('traffic', () => {
         selectedRequest.value = null;
       }
       totalCount.value--;
+      searchableCache.delete(id);
     } catch (error) {
       console.error('Failed to delete request:', error);
     }

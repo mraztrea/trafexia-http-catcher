@@ -203,7 +203,7 @@ export interface DetectedPinningHost {
   bypassed: boolean;
 }
 
-export type FridaArch = "arm64-v8a" | "x86_64";
+export type FridaArch = "arm64" | "arm" | "x86_64" | "x86";
 
 export type BypassFramework =
   | "auto"
@@ -247,10 +247,20 @@ export const IPC_CHANNELS = {
 
   // App
   APP_GET_LOCAL_IP: "app:get-local-ip",
+  APP_SELECT_FILE: "app:select-file",
 
   // Browser/Emulator
   LAUNCH_BROWSER: "app:launch-browser",
   LAUNCH_EMULATOR: "app:launch-emulator",
+  LAUNCH_SIMULATOR: "app:launch-simulator",
+  ANDROID_GET_DEVICES: "android:get-devices",
+  ANDROID_BRIDGE_DEVICE: "android:bridge-device",
+  ANDROID_GET_AVDS: "android:get-avds",
+  ANDROID_LAUNCH_AVD: "android:launch-avd",
+  IOS_GET_DEVICES: "ios:get-devices",
+  IOS_LAUNCH_DEVICE: "ios:launch-device",
+  ANDROID_INSTALL_APK: "android:install-apk",
+  ANDROID_INSTALL_MULTIPLE_APKS: "android:install-multiple-apks",
 
   // Request Replay & Composer
   REQUEST_REPLAY: "request:replay",
@@ -278,7 +288,177 @@ export const IPC_CHANNELS = {
   SSL_BYPASS_GET_DETECTED_HOSTS: "ssl-bypass:get-detected-hosts",
   SSL_BYPASS_FRIDA_LOG: "ssl-bypass:frida-log",
   SSL_BYPASS_HOST_DETECTED: "ssl-bypass:host-detected",
+
+  // Frida Integration
+  FRIDA_GET_DEVICES: "frida:get-devices",
+  FRIDA_GET_APPS: "frida:get-apps",
+  FRIDA_START: "frida:start",
+  FRIDA_STOP: "frida:stop",
+  FRIDA_CHECK_DEPS: "frida:check-deps",
+  FRIDA_SETUP_SERVER: "frida:setup-server",
+
+  // Map Rules (Pro)
+  MAP_GET_RULES: "map:get-rules",
+  MAP_ADD_RULE: "map:add-rule",
+  MAP_UPDATE_RULE: "map:update-rule",
+  MAP_DELETE_RULE: "map:delete-rule",
+  MAP_TOGGLE_RULE: "map:toggle-rule",
+
+  // Throttle (Pro)
+  THROTTLE_SET_PROFILE: "throttle:set-profile",
+  THROTTLE_GET_PROFILE: "throttle:get-profile",
+  THROTTLE_DISABLE: "throttle:disable",
+
+  // License
+  LICENSE_GET: "license:get",
+  LICENSE_ACTIVATE: "license:activate",
+  LICENSE_DEACTIVATE: "license:deactivate",
+  LICENSE_GET_FEATURE_GATES: "license:get-feature-gates",
+
+  // Session (Pro)
+  SESSION_SAVE: "session:save",
+  SESSION_LOAD: "session:load",
+  SESSION_LIST: "session:list",
+  SESSION_DELETE: "session:delete",
 } as const;
+
+// ===== Map Rule (Map Local / Map Remote) =====
+export interface MapRule {
+  id: string;
+  enabled: boolean;
+  name: string;
+  type: "local" | "remote"; // Map to local file or remote URL
+  sourceUrlPattern: string; // Regex pattern to match
+  sourceMethod?: string; // Optional method filter
+  // For Map Remote
+  destinationUrl?: string; // Redirect to this URL
+  // For Map Local
+  localFilePath?: string; // Serve from local file
+  localResponseStatus?: number;
+  localResponseHeaders?: Record<string, string>;
+  // Common
+  preserveHost?: boolean; // Keep original Host header
+  created_at?: number;
+}
+
+// ===== Throttle Profile =====
+export interface ThrottleProfile {
+  enabled: boolean;
+  preset: ThrottlePreset | "custom";
+  // Custom values (bytes per second)
+  downloadSpeed: number;   // Download bandwidth limit (bytes/sec)
+  uploadSpeed: number;     // Upload bandwidth limit (bytes/sec)
+  latency: number;         // Additional latency in ms
+  packetLoss: number;      // Packet loss percentage (0-100)
+  urlPattern?: string;     // Optional: only throttle matching URLs
+}
+
+export type ThrottlePreset =
+  | "none"
+  | "gprs"      // 50 Kbps
+  | "edge"      // 250 Kbps
+  | "3g"        // 750 Kbps
+  | "3g-good"   // 1.5 Mbps
+  | "4g"        // 4 Mbps
+  | "dsl"       // 2 Mbps
+  | "wifi"      // 30 Mbps
+  | "custom";
+
+export const THROTTLE_PRESETS: Record<Exclude<ThrottlePreset, "custom" | "none">, { label: string; download: number; upload: number; latency: number }> = {
+  gprs:      { label: "GPRS (50 Kbps)",       download: 6250,     upload: 2500,    latency: 500 },
+  edge:      { label: "EDGE (250 Kbps)",      download: 31250,    upload: 12500,   latency: 300 },
+  "3g":      { label: "3G (750 Kbps)",        download: 93750,    upload: 31250,   latency: 200 },
+  "3g-good": { label: "3G Good (1.5 Mbps)",   download: 187500,   upload: 93750,   latency: 100 },
+  "4g":      { label: "4G/LTE (4 Mbps)",      download: 500000,   upload: 250000,  latency: 50 },
+  dsl:       { label: "DSL (2 Mbps)",         download: 250000,   upload: 62500,   latency: 20 },
+  wifi:      { label: "WiFi (30 Mbps)",       download: 3750000,  upload: 1875000, latency: 5 },
+};
+
+// ===== License =====
+export type LicenseTier = "free" | "pro" | "team";
+
+export interface LicenseInfo {
+  tier: LicenseTier;
+  licenseKey?: string;
+  email?: string;
+  expiresAt?: number; // Timestamp
+  activatedAt?: number;
+  machineId?: string;
+  isValid: boolean;
+}
+
+export const FEATURE_GATES: Record<string, LicenseTier> = {
+  // === FREE TIER (default on) ===
+  "qr-code": "free",
+  "copy-curl": "free",
+  "copy-url": "free",
+  "clear-requests": "free",
+  "filter-requests": "free",
+  "mock-rules": "free",
+  "breakpoints": "free",
+  "request-composer": "free",
+  "replay": "free",
+
+  // === PRO TIER ===
+  "map-rules": "pro",
+  "throttle": "pro",
+  "diff-compare": "pro",
+  "ssl-bypass": "pro",
+  "session-save": "pro",
+  "websocket": "pro",
+  "graphql": "pro",
+  "unlimited-mock": "pro",
+  "unlimited-breakpoints": "pro",
+  "scripting": "pro",
+
+  // === EXPORT ===
+  "export-curl": "free",
+  "export-har": "pro",
+  "export-postman": "pro",
+  "export-python": "pro",
+  "export-advanced": "pro",
+
+  // === TEAM TIER ===
+  "shared-sessions": "team",
+  "team-collaboration": "team",
+};
+
+// ===== Android Device =====
+export interface AndroidDevice {
+  id: string;
+  model: string;
+  type: "emulator" | "physical";
+  isRooted: boolean;
+  status: string;
+}
+
+// ===== Android App =====
+export interface AndroidApp {
+  packageName: string;
+  label: string;
+  icon?: string;
+  version?: string;
+  isSystem: boolean;
+}
+
+// ===== iOS Device =====
+export interface IosDevice {
+  udid: string;
+  name: string;
+  state: string;
+  isAvailable: boolean;
+  runtime: string;
+}
+
+// ===== Session =====
+export interface SavedSession {
+  id: string;
+  name: string;
+  description?: string;
+  requestCount: number;
+  createdAt: number;
+  size: number; // bytes
+}
 
 // ===== IPC Handler Types =====
 export interface IpcApi {
@@ -305,10 +485,20 @@ export interface IpcApi {
 
   // App
   getLocalIp: () => Promise<string>;
+  selectFile: (options?: { filters?: { name: string; extensions: string[] }[]; title?: string }) => Promise<string | null>;
 
   // Browser/Emulator
   launchBrowser: (browser: "chrome" | "firefox" | "edge") => Promise<boolean>;
   launchEmulator: () => Promise<boolean>;
+  launchSimulator: () => Promise<boolean>;
+  getAndroidDevices: () => Promise<AndroidDevice[]>;
+  bridgeAndroidDevice: (deviceId: string) => Promise<boolean>;
+  getAndroidAvds: () => Promise<string[]>;
+  launchAndroidAvd: (name: string) => Promise<boolean>;
+  installApk: (deviceId: string, apkPath: string) => Promise<boolean>;
+  installMultipleApks: (deviceId: string, apkPaths: string[]) => Promise<boolean>;
+  getIosDevices: () => Promise<IosDevice[]>;
+  launchIosDevice: (udid: string) => Promise<boolean>;
 
   // Request Replay & Composer
   replayRequest: (id: number) => Promise<CapturedRequest>;
@@ -332,17 +522,46 @@ export interface IpcApi {
 
   // SSL Bypass
   patchApk: (inputPath: string, outputPath: string) => Promise<PatchResult>;
-  injectGadget: (
-    apkPath: string,
-    arch: FridaArch,
-    outputPath: string,
-  ) => Promise<void>;
+  injectGadget: (apkPath: string, arch: FridaArch, outputPath: string) => Promise<string[]>;
   startFrida: (
     packageName: string,
     framework: BypassFramework,
+    deviceId?: string,
   ) => Promise<void>;
   stopFrida: () => Promise<void>;
   getDetectedHosts: () => Promise<DetectedPinningHost[]>;
+
+  // Frida Integration
+  fridaGetDevices: () => Promise<AndroidDevice[]>;
+  fridaGetApps: (deviceId: string) => Promise<AndroidApp[]>;
+  fridaStart: (deviceId: string, packageName: string) => Promise<void>;
+  fridaStop: () => Promise<void>;
+  fridaCheckDeps: () => Promise<{ adb: boolean; frida: boolean; fridaTools: boolean }>;
+  fridaSetupServer: (deviceId: string) => Promise<boolean>;
+
+  // Map Rules (Pro)
+  getMapRules: () => Promise<MapRule[]>;
+  addMapRule: (rule: Omit<MapRule, "id">) => Promise<MapRule>;
+  updateMapRule: (id: string, rule: Partial<MapRule>) => Promise<void>;
+  deleteMapRule: (id: string) => Promise<void>;
+  toggleMapRule: (id: string, enabled: boolean) => Promise<void>;
+
+  // Throttle (Pro)
+  setThrottleProfile: (profile: ThrottleProfile) => Promise<void>;
+  getThrottleProfile: () => Promise<ThrottleProfile>;
+  disableThrottle: () => Promise<void>;
+
+  // License
+  getLicense: () => Promise<LicenseInfo>;
+  activateLicense: (key: string, email: string) => Promise<LicenseInfo>;
+  deactivateLicense: () => Promise<void>;
+  getFeatureGates: () => Promise<Record<string, LicenseTier>>;
+
+  // Session (Pro)
+  saveSession: (name: string, description?: string) => Promise<SavedSession>;
+  loadSession: (id: string) => Promise<CapturedRequest[]>;
+  listSessions: () => Promise<SavedSession[]>;
+  deleteSession: (id: string) => Promise<void>;
 
   // Events
   onRequestCaptured: (

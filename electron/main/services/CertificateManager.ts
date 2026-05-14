@@ -119,7 +119,12 @@ export class CertificateManager {
    * Generate a random serial number
    */
   private generateSerialNumber(): string {
-    return Date.now().toString(16) + Math.random().toString(16).substring(2);
+    // Generate a random hex string of 12 bytes (24 characters)
+    let hex = forge.util.bytesToHex(forge.random.getBytesSync(12));
+    // Remove leading zeros
+    hex = hex.replace(/^0+/, '');
+    if (hex.length === 0) hex = '1';
+    return hex;
   }
 
   /**
@@ -181,6 +186,13 @@ export class CertificateManager {
       {
         name: 'subjectAltName',
         altNames: altNames,
+      },
+      {
+        name: 'subjectKeyIdentifier',
+      },
+      {
+        name: 'authorityKeyIdentifier',
+        keyIdentifier: forge.pki.getPublicKeyFingerprint(this.caCert.publicKey).getBytes(),
       },
     ]);
 

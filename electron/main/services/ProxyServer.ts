@@ -9,6 +9,8 @@ import type { CertificateManager } from './CertificateManager';
 import type { TrafficStorage } from './TrafficStorage';
 import type { BreakpointService } from './BreakpointService';
 import type { MockService } from './MockService';
+import type { MapService } from './MapService';
+import type { ThrottleService } from './ThrottleService';
 import type { CapturedRequest, ProxyConfig, ProxyStatus } from '../../../shared/types';
 import { getLocalIp } from '../utils/network';
 
@@ -19,6 +21,8 @@ export class ProxyServer extends EventEmitter {
   private storage: TrafficStorage;
   private breakpointService?: BreakpointService;
   private mockService?: MockService;
+  private mapService?: MapService;
+  private throttleService?: ThrottleService;
   private config: ProxyConfig | null = null;
   private running = false;
   private certCache: Map<string, { key: string; cert: string }> = new Map();
@@ -28,13 +32,17 @@ export class ProxyServer extends EventEmitter {
     certManager: CertificateManager, 
     storage: TrafficStorage,
     breakpointService?: BreakpointService,
-    mockService?: MockService
+    mockService?: MockService,
+    mapService?: MapService,
+    throttleService?: ThrottleService
   ) {
     super();
     this.certManager = certManager;
     this.storage = storage;
     this.breakpointService = breakpointService;
     this.mockService = mockService;
+    this.mapService = mapService;
+    this.throttleService = throttleService;
   }
 
   /**
@@ -194,12 +202,21 @@ export class ProxyServer extends EventEmitter {
     // Remove proxy-specific headers
     delete (options.headers as Record<string, unknown>)['proxy-connection'];
 
-    // Capture request
+    // Capture request with size limit to maintain smoothness
     const requestBody: Buffer[] = [];
-    clientReq.on('data', (chunk) => requestBody.push(chunk));
+    let requestSize = 0;
+    const MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB limit for capturing
+
+    clientReq.on('data', (chunk) => {
+      if (requestSize + chunk.length < MAX_BUFFER_SIZE) {
+        requestBody.push(chunk);
+        requestSize += chunk.length;
+      }
+    });
 
     clientReq.on('end', async () => {
-      const reqBodyStr = Buffer.concat(requestBody).toString('utf-8');
+      const fullBody = Buffer.concat(requestBody);
+      const reqBodyStr = requestSize < MAX_BUFFER_SIZE ? fullBody.toString('utf-8') : '[Request body too large to capture]';
 
       // Check for mock rules first
       if (this.mockService) {
@@ -241,6 +258,57 @@ export class ProxyServer extends EventEmitter {
           clientRes.writeHead(mock.status, mock.headers);
           clientRes.end(mock.body);
           return;
+        }
+      }
+
+      // Check for Map Local/Remote rules
+      if (this.mapService) {
+        const mapRule = this.mapService.findMatchingRule(clientReq.method || 'GET', requestUrl);
+        if (mapRule) {
+          if (mapRule.type === 'local') {
+            // Map Local: serve from local file
+            const localResponse = this.mapService.applyLocalMapping(mapRule);
+            if (localResponse) {
+              console.log('[ProxyServer] Map Local matched:', mapRule.name);
+              const capturedRequest: Omit<CapturedRequest, 'id'> = {
+                timestamp: startTime,
+                method: clientReq.method || 'GET',
+                url: requestUrl,
+                host: parsedUrl.hostname,
+                path: parsedUrl.pathname + parsedUrl.search,
+                status: localResponse.status,
+                requestHeaders: this.headersToRecord(clientReq.headers),
+                requestBody: reqBodyStr || null,
+                responseHeaders: localResponse.headers,
+                responseBody: localResponse.body,
+                contentType: localResponse.headers['content-type'] || 'text/plain',
+                duration: Date.now() - startTime,
+                size: Buffer.byteLength(localResponse.body),
+              };
+              const requestId = this.storage.saveRequest(capturedRequest);
+              const saved = this.storage.getRequestById(requestId);
+              if (saved) this.emit('request:complete', saved);
+
+              clientRes.writeHead(localResponse.status, localResponse.headers);
+              clientRes.end(localResponse.body);
+              return;
+            }
+          } else if (mapRule.type === 'remote') {
+            // Map Remote: rewrite URL
+            const newUrl = this.mapService.applyRemoteMapping(mapRule, requestUrl);
+            console.log('[ProxyServer] Map Remote:', requestUrl, '->', newUrl);
+            try {
+              const newParsed = new url.URL(newUrl);
+              options.hostname = newParsed.hostname;
+              options.port = newParsed.port || 80;
+              options.path = newParsed.pathname + newParsed.search;
+              if (!mapRule.preserveHost) {
+                (options.headers as Record<string, unknown>)['host'] = newParsed.host;
+              }
+            } catch (e) {
+              console.error('[ProxyServer] Invalid Map Remote URL:', newUrl);
+            }
+          }
         }
       }
 
@@ -291,10 +359,11 @@ export class ProxyServer extends EventEmitter {
       };
 
       const requestId = this.storage.saveRequest(capturedRequest);
+      this.emit('request', { ...capturedRequest, id: requestId });
 
       // Make proxy request
       const proxyReq = http.request(options, (proxyRes) => {
-        this.handleProxyResponse(requestId, startTime, proxyRes, clientRes);
+        this.handleProxyResponse(requestId, startTime, proxyRes, clientRes, requestUrl);
       });
 
       proxyReq.on('error', (err) => {
@@ -315,10 +384,20 @@ export class ProxyServer extends EventEmitter {
       });
 
       // Forward request body
-      if (reqBodyStr) {
-        proxyReq.write(reqBodyStr);
+      if (requestBody.length > 0) {
+        const fullBody = Buffer.concat(requestBody);
+        const uploadThrottle = this.throttleService?.createThrottleStream('upload', requestUrl);
+        if (uploadThrottle) {
+          uploadThrottle.pipe(proxyReq);
+          uploadThrottle.write(fullBody);
+          uploadThrottle.end();
+        } else {
+          proxyReq.write(fullBody);
+          proxyReq.end();
+        }
+      } else {
+        proxyReq.end();
       }
-      proxyReq.end();
     });
   }
 
@@ -334,8 +413,22 @@ export class ProxyServer extends EventEmitter {
       const serverSocket = net.connect(port, hostname, () => {
         clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
         serverSocket.write(head);
-        serverSocket.pipe(clientSocket);
-        clientSocket.pipe(serverSocket);
+        
+        const fullUrl = `https://${hostname}:${port}`;
+        const downloadThrottle = this.throttleService?.createThrottleStream('download', fullUrl);
+        const uploadThrottle = this.throttleService?.createThrottleStream('upload', fullUrl);
+
+        if (downloadThrottle) {
+          serverSocket.pipe(downloadThrottle).pipe(clientSocket);
+        } else {
+          serverSocket.pipe(clientSocket);
+        }
+
+        if (uploadThrottle) {
+          clientSocket.pipe(uploadThrottle).pipe(serverSocket);
+        } else {
+          clientSocket.pipe(serverSocket);
+        }
       });
 
       // Track server socket for clean shutdown
@@ -420,7 +513,17 @@ export class ProxyServer extends EventEmitter {
     tlsSocket.on('error', (err) => {
       // Suppress common errors for apps with cert pinning or unsupported protocols
       const msg = err.message || '';
-      const suppressedErrors = ['ECONNRESET', 'EPIPE', 'UNSUPPORTED_PROTOCOL', 'INAPPROPRIATE_FALLBACK', 'UNEXPECTED_MESSAGE', 'bad decrypt'];
+      const suppressedErrors = [
+        'ECONNRESET', 
+        'EPIPE', 
+        'UNSUPPORTED_PROTOCOL', 
+        'INAPPROPRIATE_FALLBACK', 
+        'UNEXPECTED_MESSAGE', 
+        'bad decrypt',
+        'CERTIFICATE_UNKNOWN', // Client rejected our cert
+        'UNKNOWN_CA',          // Client doesn't know our CA
+        'BAD_CERTIFICATE'      // Client found something wrong with the cert
+      ];
       if (!suppressedErrors.some(e => msg.includes(e))) {
         console.error('[ProxyServer] TLS error:', msg);
       }
@@ -439,315 +542,188 @@ export class ProxyServer extends EventEmitter {
   }
 
   /**
-   * Handle TLS connection after handshake
+   * Handle TLS connection after handshake using proper HTTP server
    */
   private handleTlsConnection(hostname: string, port: number, tlsSocket: tls.TLSSocket): void {
-    let buffer = Buffer.alloc(0);
+    // Create a proper HTTP server to parse requests on the TLS socket.
+    // This correctly handles chunked transfer encoding, streaming, pipelining, etc.
+    const innerServer = http.createServer((clientReq, clientRes) => {
+      this.handleMitmRequest(hostname, port, clientReq, clientRes);
+    });
 
-    const parseRequest = () => {
-      const headerEnd = buffer.indexOf('\r\n\r\n');
-      if (headerEnd === -1) return null;
+    // Pipe the TLS socket into the HTTP server as if it were a new connection
+    innerServer.emit('connection', tlsSocket);
 
-      const headerStr = buffer.slice(0, headerEnd).toString('utf-8');
-      const lines = headerStr.split('\r\n');
-      const [method, path] = lines[0].split(' ');
-
-      const headers: Record<string, string> = {};
-      for (let i = 1; i < lines.length; i++) {
-        const colonIdx = lines[i].indexOf(':');
-        if (colonIdx > 0) {
-          const key = lines[i].slice(0, colonIdx).trim().toLowerCase();
-          const value = lines[i].slice(colonIdx + 1).trim();
-          headers[key] = value;
-        }
-      }
-
-      return { method, path, headers, headerEnd };
-    };
-
-    tlsSocket.on('data', (chunk) => {
-      buffer = Buffer.concat([buffer, chunk]);
-
-      const parsed = parseRequest();
-      if (!parsed) return;
-
-      const { method, path, headers, headerEnd } = parsed;
-      const contentLength = parseInt(headers['content-length'] || '0', 10);
-      const bodyStart = headerEnd + 4;
-      const totalLength = bodyStart + contentLength;
-
-      if (buffer.length < totalLength) return;
-
-      const body = buffer.slice(bodyStart, totalLength);
-      buffer = buffer.slice(totalLength);
-
-      // Process the request
-      this.processHttpsRequest(hostname, port, method, path, headers, body, tlsSocket);
+    // Clean up inner server when socket closes
+    tlsSocket.on('close', () => {
+      innerServer.close();
     });
   }
 
   /**
-   * Process HTTPS request and forward to target
+   * Handle an intercepted HTTPS request (parsed by inner HTTP server)
    */
-  private processHttpsRequest(
+  private handleMitmRequest(
     hostname: string,
     port: number,
-    method: string,
-    path: string,
-    reqHeaders: Record<string, string>,
-    body: Buffer,
-    clientSocket: tls.TLSSocket
+    clientReq: http.IncomingMessage,
+    clientRes: http.ServerResponse
   ): void {
     const startTime = Date.now();
-    const fullUrl = `https://${hostname}${port !== 443 ? ':' + port : ''}${path}`;
+    const reqPath = clientReq.url || '/';
+    const method = clientReq.method || 'GET';
+    const fullUrl = `https://${hostname}${port !== 443 ? ':' + port : ''}${reqPath}`;
 
-    // Build headers for outgoing request
-    const outHeaders: Record<string, string> = { ...reqHeaders };
-    delete outHeaders['proxy-connection'];
-    outHeaders['host'] = hostname;
-
-    // Check for mock rules first
-    if (this.mockService) {
-      const mockRule = this.mockService.findMatchingRule(method, fullUrl);
-      if (mockRule) {
-        console.log('[ProxyServer] Mock rule matched for HTTPS:', mockRule.name);
-        
-        // Apply delay if specified
-        if (mockRule.delay && mockRule.delay > 0) {
-          setTimeout(() => {
-            this.sendMockResponseToHttpsClient(mockRule, startTime, fullUrl, hostname, path, method, reqHeaders, body, clientSocket);
-          }, mockRule.delay);
-        } else {
-          this.sendMockResponseToHttpsClient(mockRule, startTime, fullUrl, hostname, path, method, reqHeaders, body, clientSocket);
-        }
-        return; // Don't make real request
-      }
+    const reqHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(clientReq.headers)) {
+      if (typeof value === 'string') reqHeaders[key] = value;
+      else if (Array.isArray(value)) reqHeaders[key] = value.join(', ');
     }
+    delete reqHeaders['proxy-connection'];
 
-    // Save request to database
-    const capturedRequest: Omit<CapturedRequest, 'id'> = {
-      timestamp: startTime,
-      method: method,
-      url: fullUrl,
-      host: hostname,
-      path: path,
-      status: 0,
-      requestHeaders: reqHeaders,
-      requestBody: body.length > 0 ? body.toString('utf-8') : null,
-      responseHeaders: {},
-      responseBody: null,
-      contentType: '',
-      duration: 0,
-      size: 0,
-    };
+    // Collect request body
+    const requestBody: Buffer[] = [];
+    let requestSize = 0;
+    const MAX_BUFFER_SIZE = 5 * 1024 * 1024;
 
-    const requestId = this.storage.saveRequest(capturedRequest);
-    this.emit('request', { ...capturedRequest, id: requestId });
+    clientReq.on('data', (chunk) => {
+      if (requestSize + chunk.length < MAX_BUFFER_SIZE) {
+        requestBody.push(chunk);
+        requestSize += chunk.length;
+      }
+    });
 
-    // Make HTTPS request to target server
-    const options: https.RequestOptions = {
-      hostname,
-      port,
-      path,
-      method,
-      headers: outHeaders,
-      rejectUnauthorized: false,
-      // Enhance upstream compatibility
-      minVersion: 'TLSv1',
-      maxVersion: 'TLSv1.3',
-      ciphers: [
-        'TLS_AES_256_GCM_SHA384',
-        'TLS_CHACHA20_POLY1305_SHA256',
-        'TLS_AES_128_GCM_SHA256',
-        'ECDHE-RSA-AES256-GCM-SHA384',
-        'ECDHE-RSA-AES128-GCM-SHA256',
-        'ECDHE-RSA-AES256-SHA384',
-        'ECDHE-RSA-AES128-SHA256',
-        'ECDHE-RSA-AES256-SHA',
-        'ECDHE-RSA-AES128-SHA',
-        'AES256-GCM-SHA384',
-        'AES128-GCM-SHA256',
-        'AES256-SHA256',
-        'AES128-SHA256',
-        'AES256-SHA',
-        'AES128-SHA',
-        'HIGH',
-        '!aNULL',
-        '!eNULL',
-        '!EXPORT'
-      ].join(':'),
-    };
+    clientReq.on('end', async () => {
+      const body = Buffer.concat(requestBody);
+      const bodyStr = requestSize < MAX_BUFFER_SIZE && body.length > 0
+        ? body.toString('utf-8') : (body.length > 0 ? '[Request body too large]' : null);
 
-    const proxyReq = https.request(options, (proxyRes) => {
-      const responseBody: Buffer[] = [];
-
-      proxyRes.on('data', (chunk) => responseBody.push(chunk));
-
-      proxyRes.on('end', async () => {
-        const duration = Date.now() - startTime;
-        // Keep original compressed body for forwarding to client
-        const originalBodyBuffer = Buffer.concat(responseBody);
-        const contentType = proxyRes.headers['content-type'] || '';
-        const contentEncoding = proxyRes.headers['content-encoding'] || '';
-
-        // Decompress a copy for database storage only
-        let decompressedBuffer = originalBodyBuffer;
-        try {
-          if (contentEncoding === 'gzip') {
-            decompressedBuffer = zlib.gunzipSync(originalBodyBuffer);
-          } else if (contentEncoding === 'deflate') {
-            decompressedBuffer = zlib.inflateSync(originalBodyBuffer);
-          } else if (contentEncoding === 'br') {
-            decompressedBuffer = zlib.brotliDecompressSync(originalBodyBuffer);
+      // Check for mock rules
+      if (this.mockService) {
+        const mockRule = this.mockService.findMatchingRule(method, fullUrl);
+        if (mockRule) {
+          if (mockRule.delay && mockRule.delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, mockRule.delay));
           }
-        } catch (e) {
-          console.error('[ProxyServer] Decompression error:', e);
-          // Keep original buffer if decompression fails
-          decompressedBuffer = originalBodyBuffer;
-        }
-
-        // Update database with decompressed content
-        const maxSize = 5 * 1024 * 1024;
-        let bodyStr: string | null = null;
-        if (decompressedBuffer.length <= maxSize) {
-          try {
-            bodyStr = decompressedBuffer.toString('utf-8');
-          } catch {
-            bodyStr = '[Binary data]';
-          }
-        } else {
-          bodyStr = `[Body too large: ${decompressedBuffer.length} bytes]`;
-        }
-
-        const resHeaders: Record<string, string> = {};
-        for (const [key, value] of Object.entries(proxyRes.headers)) {
-          if (typeof value === 'string') resHeaders[key] = value;
-          else if (Array.isArray(value)) resHeaders[key] = value.join(', ');
-        }
-
-        this.storage.updateResponse(requestId, {
-          status: proxyRes.statusCode || 0,
-          responseHeaders: resHeaders,
-          responseBody: bodyStr,
-          contentType,
-          duration,
-          size: originalBodyBuffer.length, // Use original size
-        });
-
-        const completeRequest = this.storage.getRequestById(requestId);
-        if (completeRequest) {
-          this.emit('request:complete', completeRequest);
-        }
-
-        // Send response to client - use original compressed body
-        // Check if socket is still writable
-        if (!clientSocket.writable || clientSocket.destroyed) {
-          console.error('[ProxyServer] Client socket is not writable, skipping response');
+          const mock = this.mockService.generateMockResponse(mockRule);
+          const capturedReq: Omit<CapturedRequest, 'id'> = {
+            timestamp: startTime, method, url: fullUrl, host: hostname, path: reqPath,
+            status: mock.status, requestHeaders: reqHeaders, requestBody: bodyStr,
+            responseHeaders: mock.headers, responseBody: mock.body,
+            contentType: mock.headers['content-type'] || 'text/plain',
+            duration: Date.now() - startTime + (mockRule.delay || 0),
+            size: Buffer.byteLength(mock.body),
+          };
+          const reqId = this.storage.saveRequest(capturedReq);
+          const saved = this.storage.getRequestById(reqId);
+          if (saved) this.emit('request:complete', saved);
+          clientRes.writeHead(mock.status, mock.headers);
+          clientRes.end(mock.body);
           return;
         }
+      }
 
-        let responseHead = `HTTP/1.1 ${proxyRes.statusCode} ${proxyRes.statusMessage || ''}\r\n`;
-        for (const [key, value] of Object.entries(proxyRes.headers)) {
-          // Skip Transfer-Encoding header as we're sending complete body
-          if (key.toLowerCase() === 'transfer-encoding') continue;
-          if (typeof value === 'string') {
-            responseHead += `${key}: ${value}\r\n`;
-          } else if (Array.isArray(value)) {
-            value.forEach(v => responseHead += `${key}: ${v}\r\n`);
+      // Check for Map Local/Remote rules
+      let targetHostname = hostname;
+      let targetPort = port;
+      let targetPath = reqPath;
+      const outHeaders: Record<string, string> = { ...reqHeaders };
+
+      if (this.mapService) {
+        const mapRule = this.mapService.findMatchingRule(method, fullUrl);
+        if (mapRule) {
+          if (mapRule.type === 'local') {
+            const localResponse = this.mapService.applyLocalMapping(mapRule);
+            if (localResponse) {
+              const capturedReq: Omit<CapturedRequest, 'id'> = {
+                timestamp: startTime, method, url: fullUrl, host: hostname, path: reqPath,
+                status: localResponse.status, requestHeaders: reqHeaders, requestBody: bodyStr,
+                responseHeaders: localResponse.headers, responseBody: localResponse.body,
+                contentType: localResponse.headers['content-type'] || 'text/plain',
+                duration: Date.now() - startTime, size: Buffer.byteLength(localResponse.body),
+              };
+              const reqId = this.storage.saveRequest(capturedReq);
+              const saved = this.storage.getRequestById(reqId);
+              if (saved) this.emit('request:complete', saved);
+              clientRes.writeHead(localResponse.status, localResponse.headers);
+              clientRes.end(localResponse.body);
+              return;
+            }
+          } else if (mapRule.type === 'remote' && mapRule.destinationUrl) {
+            const newUrl = this.mapService.applyRemoteMapping(mapRule, fullUrl);
+            try {
+              const newParsed = new URL(newUrl);
+              targetHostname = newParsed.hostname;
+              targetPort = parseInt(newParsed.port) || 443;
+              targetPath = newParsed.pathname + newParsed.search;
+              if (!mapRule.preserveHost) outHeaders['host'] = newParsed.host;
+            } catch (e) {}
           }
         }
-        // Update Content-Length to match actual body size
-        responseHead += `Content-Length: ${originalBodyBuffer.length}\r\n`;
-        responseHead += '\r\n';
+      }
 
+      // Check breakpoints
+      if (this.breakpointService?.shouldBreak('request', method, fullUrl)) {
         try {
-          clientSocket.write(responseHead);
-          clientSocket.write(originalBodyBuffer);
-        } catch (err) {
-          console.error('[ProxyServer] Error writing response to client:', err);
+          const modified = await this.breakpointService.pauseAtBreakpoint(
+            'request', method, fullUrl, reqHeaders, bodyStr
+          );
+          if (modified) {
+            Object.assign(outHeaders, modified.headers);
+          }
+        } catch {
+          clientRes.writeHead(499, { 'Content-Type': 'text/plain' });
+          clientRes.end('Request dropped by user');
+          return;
+        }
+      }
+
+      // Save request
+      const capturedRequest: Omit<CapturedRequest, 'id'> = {
+        timestamp: startTime, method, url: fullUrl, host: hostname, path: reqPath,
+        status: 0, requestHeaders: reqHeaders, requestBody: bodyStr,
+        responseHeaders: {}, responseBody: null, contentType: '', duration: 0, size: 0,
+      };
+      const requestId = this.storage.saveRequest(capturedRequest);
+      this.emit('request', { ...capturedRequest, id: requestId });
+
+      // Forward to target
+      const options: https.RequestOptions = {
+        hostname: targetHostname, port: targetPort, path: targetPath, method,
+        headers: outHeaders, rejectUnauthorized: false,
+        minVersion: 'TLSv1' as tls.SecureVersion,
+        maxVersion: 'TLSv1.3' as tls.SecureVersion,
+      };
+
+      const proxyReq = https.request(options, (proxyRes) => {
+        this.handleProxyResponse(requestId, startTime, proxyRes, clientRes, fullUrl);
+      });
+
+      proxyReq.on('error', (err) => {
+        this.storage.updateResponse(requestId, {
+          status: 502, responseHeaders: {}, responseBody: err.message,
+          contentType: 'text/plain', duration: Date.now() - startTime, size: 0,
+        });
+        if (!clientRes.headersSent) {
+          clientRes.writeHead(502);
+          clientRes.end('Proxy Error: ' + err.message);
         }
       });
+
+      if (body.length > 0) {
+        const uploadThrottle = this.throttleService?.createThrottleStream('upload', fullUrl);
+        if (uploadThrottle) {
+          uploadThrottle.pipe(proxyReq);
+          uploadThrottle.write(body);
+          uploadThrottle.end();
+        } else {
+          proxyReq.write(body);
+          proxyReq.end();
+        }
+      } else {
+        proxyReq.end();
+      }
     });
-
-    proxyReq.on('error', (err) => {
-      console.error('[ProxyServer] HTTPS request error:', err.message);
-      this.storage.updateResponse(requestId, {
-        status: 502,
-        responseHeaders: {},
-        responseBody: err.message,
-        contentType: 'text/plain',
-        duration: Date.now() - startTime,
-        size: 0,
-      });
-
-      clientSocket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
-    });
-
-    if (body.length > 0) {
-      proxyReq.write(body);
-    }
-    proxyReq.end();
-  }
-
-  /**
-   * Send mock response to HTTPS client
-   */
-  private sendMockResponseToHttpsClient(
-    mockRule: any,
-    startTime: number,
-    fullUrl: string,
-    hostname: string,
-    path: string,
-    method: string,
-    reqHeaders: Record<string, string>,
-    body: Buffer,
-    clientSocket: tls.TLSSocket
-  ): void {
-    const mock = this.mockService!.generateMockResponse(mockRule);
-    
-    // Save mocked request
-    const capturedRequest: Omit<CapturedRequest, 'id'> = {
-      timestamp: startTime,
-      method: method,
-      url: fullUrl,
-      host: hostname,
-      path: path,
-      status: mock.status,
-      requestHeaders: reqHeaders,
-      requestBody: body.length > 0 ? body.toString('utf-8') : null,
-      responseHeaders: mock.headers,
-      responseBody: mock.body,
-      contentType: mock.headers['content-type'] || 'text/plain',
-      duration: Date.now() - startTime + (mockRule.delay || 0),
-      size: Buffer.byteLength(mock.body),
-    };
-
-    const requestId = this.storage.saveRequest(capturedRequest);
-    const saved = this.storage.getRequestById(requestId);
-    if (saved) {
-      this.emit('request:complete', saved);
-    }
-
-    // Send mock response to client
-    if (!clientSocket.writable || clientSocket.destroyed) {
-      console.error('[ProxyServer] Client socket is not writable, skipping mock response');
-      return;
-    }
-
-    let responseHead = `HTTP/1.1 ${mock.status} ${http.STATUS_CODES[mock.status] || 'OK'}\r\n`;
-    for (const [key, value] of Object.entries(mock.headers)) {
-      responseHead += `${key}: ${value}\r\n`;
-    }
-    const bodyBuffer = Buffer.from(mock.body);
-    responseHead += `Content-Length: ${bodyBuffer.length}\r\n`;
-    responseHead += '\r\n';
-
-    try {
-      clientSocket.write(responseHead);
-      clientSocket.write(bodyBuffer);
-    } catch (err) {
-      console.error('[ProxyServer] Error writing mock response to HTTPS client:', err);
-    }
   }
 
   /**
@@ -757,7 +733,8 @@ export class ProxyServer extends EventEmitter {
     requestId: number,
     startTime: number,
     proxyRes: http.IncomingMessage,
-    clientRes: http.ServerResponse
+    clientRes: http.ServerResponse,
+    url?: string
   ): void {
     const responseBody: Buffer[] = [];
 
@@ -815,7 +792,14 @@ export class ProxyServer extends EventEmitter {
 
     // Forward response to client
     clientRes.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
-    proxyRes.pipe(clientRes);
+    
+    // Apply throttle stream if enabled
+    const throttleStream = this.throttleService?.createThrottleStream('download', url);
+    if (throttleStream) {
+      proxyRes.pipe(throttleStream).pipe(clientRes);
+    } else {
+      proxyRes.pipe(clientRes);
+    }
   }
 
   /**

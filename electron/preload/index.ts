@@ -11,11 +11,17 @@ import type {
   BreakpointConfig,
   InterceptedRequest,
   MockRule,
+  MapRule,
+  ThrottleProfile,
+  LicenseInfo,
+  LicenseTier,
+  SavedSession,
   PatchResult,
   FridaArch,
-  BypassFramework,
   FridaLogEntry,
-  DetectedPinningHost
+  DetectedPinningHost,
+  AndroidDevice,
+  IosDevice
 } from '../../shared/types';
 import { IPC_CHANNELS } from '../../shared/types';
 
@@ -70,9 +76,8 @@ const api: IpcApi = {
   },
 
   // App
-  getLocalIp: (): Promise<string> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.APP_GET_LOCAL_IP);
-  },
+  getLocalIp: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_LOCAL_IP),
+  selectFile: (options) => ipcRenderer.invoke(IPC_CHANNELS.APP_SELECT_FILE, options),
 
   // Browser/Emulator
   launchBrowser: (browser: 'chrome' | 'firefox' | 'edge'): Promise<boolean> => {
@@ -80,6 +85,33 @@ const api: IpcApi = {
   },
   launchEmulator: (): Promise<boolean> => {
     return ipcRenderer.invoke(IPC_CHANNELS.LAUNCH_EMULATOR);
+  },
+  launchSimulator: (): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LAUNCH_SIMULATOR);
+  },
+  getAndroidDevices: (): Promise<AndroidDevice[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_GET_DEVICES);
+  },
+  bridgeAndroidDevice: (deviceId: string): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_BRIDGE_DEVICE, deviceId);
+  },
+  getAndroidAvds: (): Promise<string[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_GET_AVDS);
+  },
+  launchAndroidAvd: (name: string): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_LAUNCH_AVD, name);
+  },
+  installApk: (deviceId: string, apkPath: string): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_INSTALL_APK, deviceId, apkPath);
+  },
+  installMultipleApks: (deviceId: string, apkPaths: string[]): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.ANDROID_INSTALL_MULTIPLE_APKS, deviceId, apkPaths);
+  },
+  getIosDevices: (): Promise<IosDevice[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.IOS_GET_DEVICES);
+  },
+  launchIosDevice: (udid: string): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.IOS_LAUNCH_DEVICE, udid);
   },
 
   // Request Replay & Composer
@@ -121,6 +153,86 @@ const api: IpcApi = {
     return ipcRenderer.invoke(IPC_CHANNELS.MOCK_TOGGLE_RULE, id, enabled);
   },
 
+  // SSL Bypass
+  patchApk: (inputPath: string, outputPath: string): Promise<PatchResult> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_PATCH_APK, inputPath, outputPath);
+  },
+  injectGadget: (apkPath: string, arch: FridaArch, outputPath: string): Promise<string[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_INJECT_GADGET, apkPath, arch, outputPath);
+  },
+  startFrida: (packageName, framework, deviceId) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_START_FRIDA, packageName, framework, deviceId),
+  stopFrida: (): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_STOP_FRIDA);
+  },
+  getDetectedHosts: (): Promise<DetectedPinningHost[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_GET_DETECTED_HOSTS);
+  },
+
+  // Frida Integration
+  fridaGetDevices: () => ipcRenderer.invoke(IPC_CHANNELS.FRIDA_GET_DEVICES),
+  fridaGetApps: (deviceId: string) => ipcRenderer.invoke(IPC_CHANNELS.FRIDA_GET_APPS, deviceId),
+  fridaStart: (deviceId: string, packageName: string) => ipcRenderer.invoke(IPC_CHANNELS.FRIDA_START, deviceId, packageName),
+  fridaStop: () => ipcRenderer.invoke(IPC_CHANNELS.FRIDA_STOP),
+  fridaCheckDeps: () => ipcRenderer.invoke(IPC_CHANNELS.FRIDA_CHECK_DEPS),
+  fridaSetupServer: (deviceId: string) => ipcRenderer.invoke(IPC_CHANNELS.FRIDA_SETUP_SERVER, deviceId),
+
+  // Map Rules (Pro)
+  getMapRules: (): Promise<MapRule[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_GET_RULES);
+  },
+  addMapRule: (rule: Omit<MapRule, 'id'>): Promise<MapRule> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_ADD_RULE, rule);
+  },
+  updateMapRule: (id: string, rule: Partial<MapRule>): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_UPDATE_RULE, id, rule);
+  },
+  deleteMapRule: (id: string): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_DELETE_RULE, id);
+  },
+  toggleMapRule: (id: string, enabled: boolean): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MAP_TOGGLE_RULE, id, enabled);
+  },
+
+  // Throttle (Pro)
+  setThrottleProfile: (profile: ThrottleProfile): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.THROTTLE_SET_PROFILE, profile);
+  },
+  getThrottleProfile: (): Promise<ThrottleProfile> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.THROTTLE_GET_PROFILE);
+  },
+  disableThrottle: (): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.THROTTLE_DISABLE);
+  },
+
+  // License
+  getLicense: (): Promise<LicenseInfo> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET);
+  },
+  activateLicense: (key: string, email: string): Promise<LicenseInfo> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_ACTIVATE, key, email);
+  },
+  deactivateLicense: (): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_DEACTIVATE);
+  },
+  getFeatureGates: (): Promise<Record<string, LicenseTier>> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET_FEATURE_GATES);
+  },
+
+  // Session (Pro)
+  saveSession: (name: string, description?: string): Promise<SavedSession> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_SAVE, name, description);
+  },
+  loadSession: (id: string): Promise<CapturedRequest[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_LOAD, id);
+  },
+  listSessions: (): Promise<SavedSession[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_LIST);
+  },
+  deleteSession: (id: string): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_DELETE, id);
+  },
+
   // Events
   onRequestCaptured: (callback: (request: CapturedRequest) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, request: CapturedRequest) => {
@@ -150,23 +262,6 @@ const api: IpcApi = {
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.BREAKPOINT_REQUEST_PENDING, handler);
     };
-  },
-
-  // SSL Bypass
-  patchApk: (inputPath: string, outputPath: string): Promise<PatchResult> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_PATCH_APK, inputPath, outputPath);
-  },
-  injectGadget: (apkPath: string, arch: FridaArch, outputPath: string): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_INJECT_GADGET, apkPath, arch, outputPath);
-  },
-  startFrida: (packageName: string, framework: BypassFramework): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_START_FRIDA, packageName, framework);
-  },
-  stopFrida: (): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_STOP_FRIDA);
-  },
-  getDetectedHosts: (): Promise<DetectedPinningHost[]> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SSL_BYPASS_GET_DETECTED_HOSTS);
   },
 
   // SSL Bypass Events

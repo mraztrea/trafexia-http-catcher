@@ -7,6 +7,13 @@ import type { CertServer } from './services/CertServer';
 import type { BreakpointService } from './services/BreakpointService';
 import type { MockService } from './services/MockService';
 import type { RequestComposer } from './services/RequestComposer';
+import type { LicenseService } from './services/LicenseService';
+import type { MapService } from './services/MapService';
+import type { ThrottleService } from './services/ThrottleService';
+import type { AndroidService } from './services/AndroidService';
+import type { IosService } from './services/IosService';
+import type { ApkSignerService } from './services/ApkSignerService';
+import type { FridaManager } from './services/FridaManager';
 import type {
   ProxyConfig,
   ProxyStatus,
@@ -19,7 +26,13 @@ import type {
   ComposedRequest,
   BreakpointConfig,
   InterceptedRequest,
-  MockRule
+  MockRule,
+  MapRule,
+  ThrottleProfile,
+  LicenseInfo,
+  LicenseTier,
+  AndroidDevice,
+  IosDevice
 } from '../../shared/types';
 import { IPC_CHANNELS, DEFAULT_SETTINGS } from '../../shared/types';
 import { getLocalIp } from './utils/network';
@@ -32,11 +45,29 @@ interface Services {
   breakpointService: BreakpointService;
   mockService: MockService;
   requestComposer: RequestComposer;
+  licenseService: LicenseService;
+  mapService: MapService;
+  throttleService: ThrottleService;
+  androidService: AndroidService;
+  iosService: IosService;
+  apkSignerService: ApkSignerService;
+  fridaManager: FridaManager;
   mainWindow: () => BrowserWindow | null;
 }
 
 export function setupIpcHandlers(services: Services): void {
-  const { certificateManager, proxyServer, trafficStorage, certServer, breakpointService, mockService, requestComposer, mainWindow } = services;
+  const { certificateManager, proxyServer, trafficStorage, certServer, breakpointService, mockService, requestComposer, licenseService, mapService, throttleService, androidService, iosService, fridaManager, mainWindow } = services;
+
+  /**
+   * Server-side feature gate enforcement.
+   * Throws if the current license tier doesn't allow the feature.
+   * This is the REAL enforcement — UI guards are just UX hints.
+   */
+  function requireFeature(featureId: string): void {
+    if (!licenseService.hasFeature(featureId)) {
+      throw new Error(`FEATURE_LOCKED:${featureId}: Your current license tier does not support this feature.`);
+    }
+  }
 
   // ===== Proxy Control =====
 
@@ -50,13 +81,37 @@ export function setupIpcHandlers(services: Services): void {
       // Start proxy server
       const status = await proxyServer.start(config);
 
-      // Listen for captured requests and forward to renderer
-      proxyServer.on('request:complete', (request: CapturedRequest) => {
+      // Listen for captured requests and forward to renderer with batching
+      let requestBuffer: CapturedRequest[] = [];
+      let batchTimeout: NodeJS.Timeout | null = null;
+
+      const sendBatch = () => {
+        if (requestBuffer.length === 0) return;
+        
         const win = mainWindow();
         if (win && !win.isDestroyed()) {
-          win.webContents.send(IPC_CHANNELS.REQUEST_CAPTURED, request);
+          // Send as an array if multiple, or single if one
+          win.webContents.send(IPC_CHANNELS.REQUEST_CAPTURED, requestBuffer.length === 1 ? requestBuffer[0] : requestBuffer);
         }
-      });
+        requestBuffer = [];
+        if (batchTimeout) {
+          clearTimeout(batchTimeout);
+          batchTimeout = null;
+        }
+      };
+
+      const handleCapturedRequest = (request: CapturedRequest) => {
+        requestBuffer.push(request);
+        
+        if (requestBuffer.length >= 50) {
+          sendBatch();
+        } else if (!batchTimeout) {
+          batchTimeout = setTimeout(sendBatch, 50); // Faster batching for better UX
+        }
+      };
+
+      proxyServer.on('request', handleCapturedRequest);
+      proxyServer.on('request:complete', handleCapturedRequest);
 
       console.log('[IPC] Proxy started:', status);
       return status;
@@ -230,6 +285,20 @@ export function setupIpcHandlers(services: Services): void {
     return getLocalIp();
   });
 
+  ipcMain.handle(IPC_CHANNELS.APP_SELECT_FILE, async (_event, options?: { filters?: { name: string; extensions: string[] }[]; title?: string }): Promise<string | null> => {
+    const result = await dialog.showOpenDialog({
+      title: options?.title || 'Select File',
+      filters: options?.filters,
+      properties: ['openFile']
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+
+    return result.filePaths[0];
+  });
+
   // ===== Browser/Emulator =====
 
   ipcMain.handle(IPC_CHANNELS.LAUNCH_BROWSER, async (_event, browser: 'chrome' | 'firefox' | 'edge'): Promise<boolean> => {
@@ -353,6 +422,103 @@ export function setupIpcHandlers(services: Services): void {
       throw error;
     }
   });
+  
+  ipcMain.handle(IPC_CHANNELS.LAUNCH_SIMULATOR, async (): Promise<boolean> => {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    try {
+      if (process.platform !== 'darwin') {
+        throw new Error('iOS Simulator is only available on macOS');
+      }
+
+      console.log('[IPC] Launching iOS Simulator...');
+      // Just opening the app will boot the last used simulator
+      await execAsync('open -a Simulator');
+      
+      return true;
+    } catch (error) {
+      console.error('[IPC] Failed to launch simulator:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_GET_DEVICES, async (): Promise<AndroidDevice[]> => {
+    try {
+      return await androidService.listDevices();
+    } catch (error) {
+      console.error('[IPC] Failed to get Android devices:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_BRIDGE_DEVICE, async (_event, deviceId: string): Promise<boolean> => {
+    try {
+      const settings = loadSettings(trafficStorage);
+      const localIp = getLocalIp();
+      const proxyUrl = `${localIp}:${settings.proxyPort}`;
+      
+      return await androidService.bridgeDevice(deviceId, proxyUrl);
+    } catch (error) {
+      console.error('[IPC] Failed to bridge Android device:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_GET_AVDS, async (): Promise<string[]> => {
+    try {
+      return await androidService.listAvds();
+    } catch (error) {
+      console.error('[IPC] Failed to get Android AVDs:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_LAUNCH_AVD, async (_event, name: string): Promise<boolean> => {
+    try {
+      return await androidService.launchAvd(name);
+    } catch (error) {
+      console.error('[IPC] Failed to launch Android AVD:', error);
+      throw error;
+    }
+  });
+  
+  ipcMain.handle(IPC_CHANNELS.ANDROID_INSTALL_APK, async (_event, deviceId: string, apkPath: string): Promise<boolean> => {
+    try {
+      return await androidService.installApk(deviceId, apkPath);
+    } catch (error) {
+      console.error('[IPC] Failed to install APK:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ANDROID_INSTALL_MULTIPLE_APKS, async (_event, deviceId: string, apkPaths: string[]): Promise<boolean> => {
+    try {
+      return await androidService.installMultipleApks(deviceId, apkPaths);
+    } catch (error) {
+      console.error('[IPC] Failed to install multiple APKs:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.IOS_GET_DEVICES, async (): Promise<IosDevice[]> => {
+    try {
+      return await iosService.listDevices();
+    } catch (error) {
+      console.error('[IPC] Failed to get iOS devices:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.IOS_LAUNCH_DEVICE, async (_event, udid: string): Promise<boolean> => {
+    try {
+      return await iosService.launchDevice(udid);
+    } catch (error) {
+      console.error('[IPC] Failed to launch iOS device:', error);
+      throw error;
+    }
+  });
 
   // ===== Request Replay & Composer =====
 
@@ -453,6 +619,13 @@ export function setupIpcHandlers(services: Services): void {
 
   ipcMain.handle(IPC_CHANNELS.MOCK_ADD_RULE, async (_event, rule: Omit<MockRule, 'id'>): Promise<MockRule> => {
     try {
+      // Free tier: max 5 mock rules
+      if (!licenseService.hasFeature('unlimited-mock')) {
+        const existing = mockService.getRules();
+        if (existing.length >= 5) {
+          throw new Error('FEATURE_LOCKED:unlimited-mock');
+        }
+      }
       const newRule = mockService.addRule(rule);
       console.log('[IPC] Mock rule added:', newRule.name);
       return newRule;
@@ -490,6 +663,110 @@ export function setupIpcHandlers(services: Services): void {
       console.error('[IPC] Failed to toggle mock rule:', error);
       throw error;
     }
+  });
+
+  // ===== Map Rules (Pro) =====
+
+  ipcMain.handle(IPC_CHANNELS.MAP_GET_RULES, async (): Promise<MapRule[]> => {
+    return mapService.getRules();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MAP_ADD_RULE, async (_event, rule: Omit<MapRule, 'id'>): Promise<MapRule> => {
+    try {
+      requireFeature('map-rules');
+      const newRule = mapService.addRule(rule);
+      console.log('[IPC] Map rule added:', newRule.name);
+      return newRule;
+    } catch (error) {
+      console.error('[IPC] Failed to add map rule:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MAP_UPDATE_RULE, async (_event, id: string, updates: Partial<MapRule>): Promise<void> => {
+    requireFeature('map-rules');
+    mapService.updateRule(id, updates);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MAP_DELETE_RULE, async (_event, id: string): Promise<void> => {
+    requireFeature('map-rules');
+    mapService.deleteRule(id);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MAP_TOGGLE_RULE, async (_event, id: string, enabled: boolean): Promise<void> => {
+    requireFeature('map-rules');
+    mapService.toggleRule(id, enabled);
+  });
+
+  // ===== Throttle (Pro) =====
+
+  ipcMain.handle(IPC_CHANNELS.THROTTLE_GET_PROFILE, async (): Promise<ThrottleProfile> => {
+    return throttleService.getProfile();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.THROTTLE_SET_PROFILE, async (_event, profile: ThrottleProfile): Promise<void> => {
+    requireFeature('throttle');
+    throttleService.setProfile(profile);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.THROTTLE_DISABLE, async (): Promise<void> => {
+    throttleService.disable();
+  });
+
+  // ===== License =====
+
+  ipcMain.handle(IPC_CHANNELS.LICENSE_GET, async (): Promise<LicenseInfo> => {
+    return licenseService.getLicense();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LICENSE_ACTIVATE, async (_event, key: string, email: string): Promise<LicenseInfo> => {
+    return licenseService.activateLicense(key, email);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LICENSE_DEACTIVATE, async (): Promise<void> => {
+    return licenseService.deactivateLicense();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LICENSE_GET_FEATURE_GATES, async (): Promise<Record<string, LicenseTier>> => {
+    return licenseService.getFeatureGates();
+  });
+
+  // ===== Frida Integration =====
+
+  fridaManager.setLogCallback((log) => {
+    const win = mainWindow();
+    if (win && !win.isDestroyed()) {
+      win.webContents.send(IPC_CHANNELS.SSL_BYPASS_FRIDA_LOG, log);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.FRIDA_GET_DEVICES, async () => {
+    return fridaManager.getDevices();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.FRIDA_GET_APPS, async (_event, deviceId: string) => {
+    return fridaManager.getApps(deviceId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.FRIDA_START, async (_event, deviceId: string, packageName: string) => {
+    const settings = loadSettings(trafficStorage);
+    const localIp = getLocalIp();
+    const certPath = certificateManager.getCertPath();
+    const caCert = fs.readFileSync(certPath, 'utf-8');
+    
+    return fridaManager.startFrida(deviceId, packageName, localIp, settings.proxyPort, caCert);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.FRIDA_STOP, async () => {
+    return fridaManager.stopFrida();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.FRIDA_CHECK_DEPS, async () => {
+    return fridaManager.checkDependencies();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.FRIDA_SETUP_SERVER, async (_event, deviceId: string) => {
+    return fridaManager.setupFridaServer(deviceId);
   });
 }
 

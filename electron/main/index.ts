@@ -7,6 +7,13 @@ import { CertServer } from './services/CertServer';
 import { BreakpointService } from './services/BreakpointService';
 import { MockService } from './services/MockService';
 import { RequestComposer } from './services/RequestComposer';
+import { LicenseService } from './services/LicenseService';
+import { MapService } from './services/MapService';
+import { ThrottleService } from './services/ThrottleService';
+import { AndroidService } from './services/AndroidService';
+import { IosService } from './services/IosService';
+import { ApkSignerService } from './services/ApkSignerService';
+import { FridaManager } from './services/FridaManager';
 import { setupIpcHandlers } from './ipc-handlers';
 import { setupSslBypassIpc, cleanupFridaProcess } from '../ssl-bypass/ssl-bypass-ipc';
 import { getLocalIp } from './utils/network';
@@ -19,6 +26,13 @@ let certServer: CertServer;
 let breakpointService: BreakpointService;
 let mockService: MockService;
 let requestComposer: RequestComposer;
+let licenseService: LicenseService;
+let mapService: MapService;
+let throttleService: ThrottleService;
+let androidService: AndroidService;
+let iosService: IosService;
+let apkSignerService: ApkSignerService;
+let fridaManager: FridaManager;
 let mainWindow: BrowserWindow | null = null;
 
 // Disable hardware acceleration for better compatibility
@@ -30,6 +44,8 @@ const createWindow = () => {
     resizable: true,
     title: 'Trafexia - Mobile Traffic Interceptor',
     icon: join(__dirname, '../resources/icons/icon.png'),
+    minWidth: 1024,
+    minHeight: 700,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
@@ -42,9 +58,14 @@ const createWindow = () => {
     show: false,
   });
 
-  // Show window when ready
+  // Show window maximized when ready
   mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize();
     mainWindow?.show();
+
+    // Lock zoom level to 100% — prevent Ctrl+/- zoom that breaks layout
+    mainWindow?.webContents.setZoomFactor(1.0);
+    mainWindow?.webContents.setZoomLevel(0);
 
     // Register breakpoint events after renderer is fully ready
     // Prevents mainWindow.webContents.send from firing too early
@@ -53,6 +74,13 @@ const createWindow = () => {
         mainWindow.webContents.send('breakpoint:request-pending', intercepted);
       };
     });
+  });
+
+  // Prevent zoom via keyboard shortcuts (Cmd+/Cmd- on Mac, Ctrl+/Ctrl- on Windows)
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if ((input.control || input.meta) && (input.key === '+' || input.key === '-' || input.key === '=')) {
+      _event.preventDefault();
+    }
   });
 
   // Open external links in browser
@@ -89,12 +117,22 @@ const initializeServices = async () => {
   breakpointService = new BreakpointService();
   mockService = new MockService(trafficStorage);
   requestComposer = new RequestComposer();
+  licenseService = new LicenseService(trafficStorage);
+  mapService = new MapService(trafficStorage);
+  throttleService = new ThrottleService(trafficStorage);
+  androidService = new AndroidService();
+  iosService = new IosService();
+  apkSignerService = new ApkSignerService();
+  fridaManager = new FridaManager();
 
-  // Load mock rules from database
+  // Load rules and initialize
   await mockService.loadRules();
+  await licenseService.initialize();
+  await mapService.loadRules();
+  await throttleService.initialize();
 
-  // Initialize proxy server with new services
-  proxyServer = new ProxyServer(certificateManager, trafficStorage, breakpointService, mockService);
+  // Initialize proxy server with all services
+  proxyServer = new ProxyServer(certificateManager, trafficStorage, breakpointService, mockService, mapService, throttleService);
 
   // Setup IPC handlers
   setupIpcHandlers({
@@ -105,11 +143,18 @@ const initializeServices = async () => {
     breakpointService,
     mockService,
     requestComposer,
+    licenseService,
+    mapService,
+    throttleService,
+    androidService,
+    iosService,
+    apkSignerService,
+    fridaManager,
     mainWindow: () => mainWindow,
   });
 
-  // Setup SSL bypass IPC handlers
-  setupSslBypassIpc(() => mainWindow);
+  // Setup SSL bypass IPC handlers (with license enforcement)
+  setupSslBypassIpc(() => mainWindow, licenseService, apkSignerService);
 
   console.log('[Main] Services initialized');
 };

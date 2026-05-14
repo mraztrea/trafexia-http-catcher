@@ -67,6 +67,71 @@ export class CertServer {
       }
     });
 
+    // iOS Configuration Profile (.mobileconfig) — one-tap install
+    this.app.get('/cert.mobileconfig', (_req: Request, res: Response) => {
+      try {
+        const certPem = this.certManager.getCertPem();
+        // Extract base64 cert content (strip PEM headers)
+        const b64 = certPem
+          .replace('-----BEGIN CERTIFICATE-----', '')
+          .replace('-----END CERTIFICATE-----', '')
+          .replace(/\s/g, '');
+
+        const uuid1 = this.generateUUID();
+        const uuid2 = this.generateUUID();
+
+        const mobileconfig = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadCertificateFileName</key>
+      <string>TrafexiaCA.cer</string>
+      <key>PayloadContent</key>
+      <data>${b64}</data>
+      <key>PayloadDescription</key>
+      <string>Installs Trafexia Root CA for HTTPS traffic interception</string>
+      <key>PayloadDisplayName</key>
+      <string>Trafexia Root CA</string>
+      <key>PayloadIdentifier</key>
+      <string>com.trafexia.cert.${uuid1}</string>
+      <key>PayloadType</key>
+      <string>com.apple.security.root</string>
+      <key>PayloadUUID</key>
+      <string>${uuid1}</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+    </dict>
+  </array>
+  <key>PayloadDescription</key>
+  <string>Trafexia CA Certificate for HTTPS traffic inspection. After installing, go to Settings → General → About → Certificate Trust Settings to enable trust.</string>
+  <key>PayloadDisplayName</key>
+  <string>Trafexia Traffic Interceptor</string>
+  <key>PayloadIdentifier</key>
+  <string>com.trafexia.profile.${uuid2}</string>
+  <key>PayloadOrganization</key>
+  <string>Trafexia</string>
+  <key>PayloadRemovalDisallowed</key>
+  <false/>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>${uuid2}</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+</dict>
+</plist>`;
+
+        res.setHeader('Content-Type', 'application/x-apple-aspen-config');
+        res.setHeader('Content-Disposition', 'attachment; filename="Trafexia.mobileconfig"');
+        res.send(mobileconfig);
+      } catch (err) {
+        res.status(500).send('Failed to generate mobileconfig');
+      }
+    });
+
     // Setup instructions page
     this.app.get('/setup', (_req: Request, res: Response) => {
       const localIp = this.getLocalIp();
@@ -131,6 +196,17 @@ export class CertServer {
    */
   isRunning(): boolean {
     return this.running;
+  }
+
+  /**
+   * Generate a random UUID v4
+   */
+  private generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
   }
 
   /**

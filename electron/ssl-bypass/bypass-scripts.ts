@@ -255,82 +255,42 @@ export function bypassWebView(): string {
 
 export function bypassFlutter(): string {
   return `
-(function() {
-  // Flutter uses BoringSSL internally via libflutter.so
-  // We need to find and patch ssl_crypto_x509_session_verify_cert_chain
-  try {
-    var libflutter = Process.findModuleByName('libflutter.so');
-    if (!libflutter) {
-      console.log('[-] libflutter.so not found, trying to wait...');
-      // Try to hook dlopen to catch late-loaded libflutter
-      var dlopen = Module.findExportByName(null, 'dlopen');
-      if (dlopen) {
-        Interceptor.attach(dlopen, {
-          onEnter: function(args) {
-            this.path = args[0].readCString();
-          },
-          onLeave: function(retval) {
-            if (this.path && this.path.indexOf('libflutter.so') !== -1) {
-              console.log('[+] libflutter.so loaded, patching...');
-              patchFlutterSsl();
-            }
-          }
-        });
-      }
-      return;
+;(function() {
+  console.log('[*] Trafexia Flutter Bypass v4.0.9 starting...');
+  
+  var m = Process.findModuleByName("libflutter.so");
+  if (m) {
+    console.log('[*] libflutter.so found at ' + m.base);
+    var pattern = "FF 03 01 D1 FD 7B 01 A9 08 0A 80 52 48 00 00 58";
+    var results = Memory.scanSync(m.base, m.size, pattern);
+    if (results.length > 0) {
+      console.log('[+] Pattern found at ' + results[0].address);
+      Interceptor.attach(results[0].address, {
+        onLeave: function(retval) {
+          retval.replace(new NativePointer("0x1"));
+        }
+      });
+      console.log('[+] Flutter SSL bypass applied!');
     }
-    patchFlutterSsl();
-  } catch (e) {
-    console.log('[-] Flutter bypass error: ' + e.message);
-  }
-
-  function patchFlutterSsl() {
-    var libflutter = Process.findModuleByName('libflutter.so');
-    if (!libflutter) return;
-
-    // Pattern for ssl_crypto_x509_session_verify_cert_chain
-    // This searches for the function signature in the binary
-    var patterns = [
-      // Android ARM64 pattern for "x509_session_verify_cert_chain" error string ref
-      'FF 03 01 D1 FD 7B 03 A9 FD C3 00 91',
-      // Alternative pattern
-      'F8 5F BC A9 F6 57 01 A9 F4 4F 02 A9 FD 7B 03 A9',
-    ];
-
-    var found = false;
-    for (var i = 0; i < patterns.length; i++) {
-      Memory.scan(libflutter.base, libflutter.size, patterns[i], {
-        onMatch: function(address, size) {
-          console.log('[+] Flutter SSL verify function found at: ' + address);
-          Interceptor.replace(address, new NativeCallback(function(pathPtr, leafPtr, chainPtr) {
-            console.log('[+] Flutter ssl_crypto_x509_session_verify_cert_chain bypassed');
-            return 1; // Return success
-          }, 'int', ['pointer', 'pointer', 'pointer']));
-          found = true;
-        },
-        onComplete: function() {
-          if (!found) {
-            console.log('[-] Flutter SSL verify pattern ' + i + ' not found');
+  } else {
+    var dl = Module.findExportByName(null, "dlopen") || Module.findExportByName(null, "__loader_dlopen");
+    if (dl) {
+      Interceptor.attach(dl, {
+        onEnter: function(args) { this.p = args[0].readCString(); },
+        onLeave: function(retval) {
+          if (this.p && this.p.indexOf("libflutter.so") !== -1) {
+            var m2 = Process.findModuleByName("libflutter.so");
+            if (m2) {
+               var p2 = "FF 03 01 D1 FD 7B 01 A9 08 0A 80 52 48 00 00 58";
+               var r2 = Memory.scanSync(m2.base, m2.size, p2);
+               if (r2.length > 0) {
+                 Interceptor.attach(r2[0].address, { onLeave: function(rv) { rv.replace(new NativePointer("0x1")); } });
+                 console.log('[+] Late Flutter SSL bypass applied!');
+               }
+            }
           }
         }
       });
-      if (found) break;
-    }
-
-    // Alternative: hook ssl_verify_peer_cert
-    if (!found) {
-      try {
-        var ssl_verify = Module.findExportByName('libflutter.so', 'ssl_verify_peer_cert');
-        if (ssl_verify) {
-          Interceptor.replace(ssl_verify, new NativeCallback(function() {
-            console.log('[+] Flutter ssl_verify_peer_cert bypassed');
-            return 0;
-          }, 'int', []));
-          found = true;
-        }
-      } catch (e) {
-        console.log('[-] Flutter ssl_verify_peer_cert hook failed: ' + e.message);
-      }
     }
   }
 })();
@@ -444,30 +404,37 @@ Java.perform(function() {
     });
 
     var TrustManagers = [TrustManager.$new()];
-    var SSLContextInit = SSLContext.init;
+
+    // Hook SSLContext.init
+    SSLContext.init.overload('[Ljavax.net.ssl.KeyManager;', '[Ljavax.net.ssl.TrustManager;', 'java.security.SecureRandom').implementation = function(km, tm, sr) {
+      console.log('[+] SSLContext.init intercepted - injecting universal trust manager');
+      this.init(km, TrustManagers, sr);
+    };
 
     // Hook HttpsURLConnection
     try {
       var HttpsURLConnection = Java.use('javax.net.ssl.HttpsURLConnection');
       HttpsURLConnection.setDefaultSSLSocketFactory.implementation = function(factory) {
         console.log('[+] HttpsURLConnection.setDefaultSSLSocketFactory intercepted');
-        var ctx = SSLContext.getInstance('TLS');
-        ctx.init(null, TrustManagers, null);
-        this.setDefaultSSLSocketFactory(ctx.getSocketFactory());
       };
       HttpsURLConnection.setSSLSocketFactory.implementation = function(factory) {
         console.log('[+] HttpsURLConnection.setSSLSocketFactory intercepted');
-        var ctx = SSLContext.getInstance('TLS');
-        ctx.init(null, TrustManagers, null);
-        this.setSSLSocketFactory(ctx.getSocketFactory());
       };
       HttpsURLConnection.setDefaultHostnameVerifier.implementation = function(verifier) {
         console.log('[+] HttpsURLConnection.setDefaultHostnameVerifier intercepted');
-        // Don't set any real verifier
       };
     } catch (e) {
       console.log('[-] HttpsURLConnection hooks failed: ' + e.message);
     }
+
+    // Advanced: Hook Conscrypt TrustManagerImpl directly
+    try {
+      var TrustManagerImpl = Java.use('com.android.org.conscrypt.TrustManagerImpl');
+      TrustManagerImpl.checkTrustedRecursive.implementation = function(certs, host, clientAuth, untrustedChain, trustAnchorChain, ocspData, tlsSctData, pooled) {
+        console.log('[+] Conscrypt TrustManagerImpl.checkTrustedRecursive bypassed for: ' + host);
+        return Java.use('java.util.ArrayList').$new();
+      };
+    } catch (e) { }
 
     console.log('[+] Generic TrustManager bypass applied');
   } catch (e) {

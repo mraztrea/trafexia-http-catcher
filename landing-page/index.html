@@ -1,49 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Trafexia - Powerful Mobile Traffic Interceptor. Intercept and analyze HTTP/HTTPS traffic from mobile devices with ease.">
-    <meta name="keywords"
-        content="traffic interceptor, MITM proxy, HTTP analyzer, HTTPS proxy, mobile traffic, network analysis">
+    <meta name="description" content="Trafexia - Professional mobile traffic interceptor for HTTP/HTTPS analysis, SSL bypass, request mocking, and network testing.">
+    <meta name="keywords" content="traffic interceptor, MITM proxy, HTTP analyzer, mobile testing, SSL bypass, Frida, APK patcher">
     <meta name="author" content="Trafexia Team">
-
-    <title>Trafexia - Mobile Traffic Interceptor</title>
+    <meta property="og:title" content="Trafexia - Mobile Traffic Interceptor">
+    <meta property="og:description" content="Intercept, analyze, and manipulate mobile app traffic with advanced security testing tools.">
+    <meta property="og:type" content="website">
+    
+    <title>Trafexia - Professional Mobile Traffic Interceptor</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
     <!-- Navigation -->
     <nav class="nav" id="nav">
         <div class="nav-container">
             <a href="#" class="nav-logo">
-                <div class="logo-icon">
-                    <i data-lucide="radio-tower"></i>
-                </div>
+                <div class="logo-icon"><i data-lucide="radio-tower"></i></div>
                 <span>Trafexia</span>
             </a>
 
-            <div class="nav-links" id="navLinks">
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How It Works</a>
-                <a href="#platforms">Download</a>
-                <a href="https://github.com/danieldev23/trafexia" target="_blank" class="github-stars-btn">
-                    <i data-lucide="github"></i>
-                    <span>Star</span>
-                    <span class="stars-count" id="navStarsCount">-</span>
+            <div class="nav-menu" id="navMenu">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#showcase" class="nav-link">Showcase</a>
+                <a href="#download" class="nav-link">Download</a>
+                <a href="https://github.com/danieldev23/trafexia" target="_blank" class="nav-link github-link">
+                    <i data-lucide="github"></i> GitHub
                 </a>
             </div>
 
@@ -55,105 +48,61 @@
 
     <!-- Hero Section -->
     <section class="hero">
-        <div class="hero-bg">
-            <div class="hero-gradient"></div>
-            <div class="hero-grid"></div>
-            <div class="hero-glow"></div>
+        <div class="hero-background">
+            <div class="grid-bg"></div>
+            <div class="gradient-orb gradient-orb-1"></div>
+            <div class="gradient-orb gradient-orb-2"></div>
         </div>
 
-        <div class="container hero-content">
-            <div class="hero-badge animate-fade-up">
-                <i data-lucide="sparkles"></i>
-                <span>Version 1.0 Available Now</span>
-            </div>
-
-            <h1 class="hero-title animate-fade-up delay-1">
-                Powerful <span class="gradient-text">Mobile Traffic</span><br>
-                Interceptor
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="hero-title-main">Professional Mobile</span>
+                <span class="hero-title-accent">Traffic Interceptor</span>
             </h1>
+            
+            <p class="hero-subtitle">Intercept, analyze, and manipulate HTTP/HTTPS traffic from mobile devices. Built with advanced security testing tools for developers and security researchers.</p>
 
-            <p class="hero-description animate-fade-up delay-2">
-                Intercept, analyze and debug HTTP/HTTPS traffic from your mobile devices
-                with professional-grade tools. Perfect for developers, security researchers,
-                and reverse engineers.
-            </p>
-
-            <div class="hero-buttons animate-fade-up delay-3">
-                <a href="#platforms" class="btn btn-primary">
-                    <i data-lucide="download"></i>
-                    Download Now
-                </a>
-                <a href="#features" class="btn btn-secondary">
-                    <i data-lucide="play-circle"></i>
-                    Learn More
-                </a>
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-value" id="heroStars">500+</div>
+                    <div class="stat-label">GitHub Stars</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">Platforms</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">10+</div>
+                    <div class="stat-label">Features</div>
+                </div>
             </div>
 
-            <div class="hero-stats animate-fade-up delay-4">
-                <div class="stat">
-                    <i data-lucide="star" class="stat-icon"></i>
-                    <span class="stat-value" id="heroStarsCount">-</span>
-                    <span class="stat-label">GitHub Stars</span>
-                </div>
-                <div class="stat-divider"></div>
-                <div class="stat">
-                    <i data-lucide="monitor" class="stat-icon"></i>
-                    <span class="stat-value">3</span>
-                    <span class="stat-label">Platforms</span>
-                </div>
-                <div class="stat-divider"></div>
-                <div class="stat">
-                    <i data-lucide="scale" class="stat-icon"></i>
-                    <span class="stat-value">MIT</span>
-                    <span class="stat-label">License</span>
-                </div>
+            <div class="hero-cta">
+                <a href="#download" class="btn btn-primary btn-lg">
+                    <i data-lucide="download"></i> Download Now
+                </a>
+                <a href="https://github.com/danieldev23/trafexia" target="_blank" class="btn btn-secondary btn-lg">
+                    <i data-lucide="code"></i> View Source
+                </a>
             </div>
         </div>
 
-        <!-- Hero Visual -->
-        <div class="hero-visual animate-fade-up delay-5">
-            <div class="app-window">
+        <!-- Hero Image/Demo -->
+        <div class="hero-image">
+            <div class="demo-window">
                 <div class="window-header">
-                    <div class="window-dots">
-                        <span class="dot dot-red"></span>
-                        <span class="dot dot-yellow"></span>
-                        <span class="dot dot-green"></span>
+                    <span class="window-title">Trafexia</span>
+                    <div class="window-controls">
+                        <div class="control"></div>
+                        <div class="control"></div>
+                        <div class="control"></div>
                     </div>
-                    <span class="window-title">Trafexia - Traffic Monitor</span>
                 </div>
                 <div class="window-content">
-                    <div class="traffic-list">
-                        <div class="traffic-item">
-                            <span class="method get">GET</span>
-                            <span class="url">/api/v1/users/profile</span>
-                            <span class="status success">200</span>
-                            <span class="time">124ms</span>
-                        </div>
-                        <div class="traffic-item">
-                            <span class="method post">POST</span>
-                            <span class="url">/api/v1/auth/login</span>
-                            <span class="status success">200</span>
-                            <span class="time">89ms</span>
-                        </div>
-                        <div class="traffic-item active">
-                            <span class="method get">GET</span>
-                            <span class="url">/api/v1/products?page=1</span>
-                            <span class="status success">200</span>
-                            <span class="time">156ms</span>
-                        </div>
-                        <div class="traffic-item">
-                            <span class="method put">PUT</span>
-                            <span class="url">/api/v1/settings</span>
-                            <span class="status success">204</span>
-                            <span class="time">67ms</span>
-                        </div>
-                        <div class="traffic-item">
-                            <span class="method delete">DELETE</span>
-                            <span class="url">/api/v1/cache/clear</span>
-                            <span class="status error">403</span>
-                            <span class="time">45ms</span>
-                        </div>
-                    </div>
+                    <div class="demo-line animated"></div>
+                    <div class="demo-line animated" style="animation-delay: 0.1s;"></div>
+                    <div class="demo-line animated" style="animation-delay: 0.2s;"></div>
+                    <div class="demo-line half"></div>
                 </div>
             </div>
         </div>
@@ -162,257 +111,164 @@
     <!-- Features Section -->
     <section class="features" id="features">
         <div class="container">
-            <div class="section-header animate-on-scroll">
-                <span class="section-label">
-                    <i data-lucide="zap"></i>
-                    Powerful Features
-                </span>
-                <h2 class="section-title">Everything You Need for<br><span class="gradient-text">Traffic Analysis</span>
-                </h2>
-                <p class="section-description">
-                    Professional-grade tools designed for developers, security researchers, and anyone who needs deep
-                    visibility into mobile network traffic.
-                </p>
+            <div class="section-header">
+                <h2 class="section-title">Powerful Features</h2>
+                <p class="section-subtitle">Everything you need for mobile app security testing and reverse engineering</p>
             </div>
 
             <div class="features-grid">
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon">
-                        <i data-lucide="shield"></i>
-                    </div>
-                    <h3>MITM Proxy Server</h3>
-                    <p>Full-featured proxy server on port 8888 that intercepts all HTTP and HTTPS traffic from your
-                        mobile devices.</p>
-                </div>
-
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon">
-                        <i data-lucide="lock"></i>
-                    </div>
-                    <h3>Auto SSL Certificates</h3>
-                    <p>Automatic CA certificate generation and management for seamless HTTPS traffic interception.</p>
-                </div>
-
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon">
-                        <i data-lucide="qr-code"></i>
-                    </div>
-                    <h3>QR Code Setup</h3>
-                    <p>Scan a QR code to instantly configure your mobile device - no manual proxy settings required.</p>
-                </div>
-
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon">
-                        <i data-lucide="activity"></i>
-                    </div>
-                    <h3>Real-time Capture</h3>
-                    <p>Live traffic updates with syntax highlighting, request timing, and detailed header inspection.
-                    </p>
-                </div>
-
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon">
-                        <i data-lucide="filter"></i>
-                    </div>
-                    <h3>Advanced Filtering</h3>
-                    <p>Filter requests by method, status code, host, content type, and custom patterns.</p>
-                </div>
-
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon">
-                        <i data-lucide="file-code"></i>
-                    </div>
-                    <h3>Export Options</h3>
-                    <p>Export captured traffic as HAR, cURL commands, Python code, or Postman collections.</p>
-                </div>
-            </div>
-
-            <!-- Additional Features -->
-            <div class="features-highlight animate-on-scroll">
-                <div class="highlight-content">
-                    <div class="highlight-icon">
-                        <i data-lucide="scan-search"></i>
-                    </div>
-                    <div class="highlight-text">
-                        <h3>Pattern Detection</h3>
-                        <p>Automatically detect and highlight JWT tokens, API keys, Base64 encoded data, and other
-                            sensitive patterns in your traffic.</p>
-                    </div>
-                </div>
-                <div class="highlight-tags">
-                    <span class="tag">JWT Tokens</span>
-                    <span class="tag">API Keys</span>
-                    <span class="tag">Base64</span>
-                    <span class="tag">Bearer Auth</span>
-                    <span class="tag">Secrets</span>
-                </div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="lock-open"></i></div><h3 class="feature-title">SSL Pinning Bypass</h3><p class="feature-desc">Bypass SSL certificate pinning with built-in scripts for OkHttp3, Conscrypt, WebView, Flutter, and React Native</p></div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="package"></i></div><h3 class="feature-title">APK Patcher</h3><p class="feature-desc">Inject bypass scripts directly into APKs without requiring rooted devices. Works with Frida Gadget</p></div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="activity"></i></div><h3 class="feature-title">Real-time Capture</h3><p class="feature-desc">Live HTTP/HTTPS traffic interception with detailed request/response analysis and timing information</p></div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="zap"></i></div><h3 class="feature-title">Request Mapping</h3><p class="feature-desc">Map URLs to different destinations with regex pattern support. Perfect for API testing and debugging</p></div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="copy"></i></div><h3 class="feature-title">Mock Responses</h3><p class="feature-desc">Create custom mock responses with status codes, headers, and bodies. Test error scenarios easily</p></div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="play-circle"></i></div><h3 class="feature-title">Frida Integration</h3><p class="feature-desc">Dynamic code injection and runtime hooking with Frida server integration for advanced testing</p></div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="filter"></i></div><h3 class="feature-title">Advanced Filtering</h3><p class="feature-desc">Filter by method, status code, host, URL, size, duration, and content type with regex support</p></div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="download-cloud"></i></div><h3 class="feature-title">Export Options</h3><p class="feature-desc">Export as HAR, cURL, Python, JSON, or Postman collections. Direct integration with popular tools</p></div>
+                <div class="feature-card"><div class="feature-icon"><i data-lucide="gauge"></i></div><h3 class="feature-title">Throttle Control</h3><p class="feature-desc">Simulate network conditions with bandwidth limiting and latency injection for performance testing</p></div>
             </div>
         </div>
     </section>
 
-    <!-- How It Works Section -->
-    <section class="how-it-works" id="how-it-works">
+    <!-- Showcase Section -->
+    <section class="showcase" id="showcase">
         <div class="container">
-            <div class="section-header animate-on-scroll">
-                <span class="section-label">
-                    <i data-lucide="book-open"></i>
-                    Quick Start
-                </span>
-                <h2 class="section-title">Get Started in<br><span class="gradient-text">5 Simple Steps</span></h2>
-                <p class="section-description">
-                    From installation to capturing your first request in under 5 minutes.
-                </p>
+            <div class="section-header">
+                <h2 class="section-title">See It In Action</h2>
+                <p class="section-subtitle">Visual walkthrough of key features</p>
             </div>
 
-            <div class="steps">
-                <div class="step animate-on-scroll">
-                    <div class="step-number">01</div>
-                    <div class="step-content">
-                        <div class="step-icon">
-                            <i data-lucide="download"></i>
-                        </div>
-                        <h3>Download & Install</h3>
-                        <p>Download Trafexia for your operating system and install it with just a few clicks.</p>
-                    </div>
-                    <div class="step-line"></div>
-                </div>
-
-                <div class="step animate-on-scroll">
-                    <div class="step-number">02</div>
-                    <div class="step-content">
-                        <div class="step-icon">
-                            <i data-lucide="play"></i>
-                        </div>
-                        <h3>Start the Proxy</h3>
-                        <p>Launch Trafexia and click "Start Proxy" to begin the MITM proxy server on port 8888.</p>
-                    </div>
-                    <div class="step-line"></div>
-                </div>
-
-                <div class="step animate-on-scroll">
-                    <div class="step-number">03</div>
-                    <div class="step-content">
-                        <div class="step-icon">
-                            <i data-lucide="scan"></i>
-                        </div>
-                        <h3>Scan QR Code</h3>
-                        <p>Use your mobile device to scan the displayed QR code for automatic configuration.</p>
-                    </div>
-                    <div class="step-line"></div>
-                </div>
-
-                <div class="step animate-on-scroll">
-                    <div class="step-number">04</div>
-                    <div class="step-content">
-                        <div class="step-icon">
-                            <i data-lucide="shield-check"></i>
-                        </div>
-                        <h3>Install Certificate</h3>
-                        <p>Follow the on-screen instructions to install the CA certificate on your device.</p>
-                    </div>
-                    <div class="step-line"></div>
-                </div>
-
-                <div class="step animate-on-scroll">
-                    <div class="step-number">05</div>
-                    <div class="step-content">
-                        <div class="step-icon">
-                            <i data-lucide="radio"></i>
-                        </div>
-                        <h3>Start Capturing</h3>
-                        <p>All HTTP/HTTPS traffic from your mobile device will now be captured and displayed!</p>
-                    </div>
-                </div>
+            <div class="showcase-grid">
+                <div class="showcase-item"><div class="showcase-image"><div class="img-placeholder"><i data-lucide="shield"></i></div></div><h3>SSL Bypass Setup</h3><p>Easy-to-use interface for configuring and injecting bypass scripts</p></div>
+                <div class="showcase-item"><div class="showcase-image"><div class="img-placeholder"><i data-lucide="list-filter"></i></div></div><h3>Traffic Analysis</h3><p>Real-time request list with filtering and detailed inspection tools</p></div>
+                <div class="showcase-item"><div class="showcase-image"><div class="img-placeholder"><i data-lucide="network"></i></div></div><h3>Request Mapping</h3><p>Configure URL mappings and mock responses with regex patterns</p></div>
+                <div class="showcase-item"><div class="showcase-image"><div class="img-placeholder"><i data-lucide="timeline"></i></div></div><h3>Timeline View</h3><p>Visualize request distribution and network patterns over time</p></div>
             </div>
         </div>
     </section>
 
-    <!-- Platforms Section -->
-    <section class="platforms" id="platforms">
+    <!-- Tech Stack -->
+    <section class="platforms-info">
         <div class="container">
-            <div class="section-header animate-on-scroll">
-                <span class="section-label">
-                    <i data-lucide="monitor"></i>
-                    Download
-                </span>
-                <h2 class="section-title">Available on<br><span class="gradient-text">All Platforms</span></h2>
-                <p class="section-description">
-                    Trafexia runs natively on Windows, macOS, and Linux. Choose your platform below.
-                </p>
+            <div class="section-header">
+                <h2 class="section-title">Supported Technologies</h2>
+                <p class="section-subtitle">Works with popular frameworks and platforms</p>
             </div>
 
-            <div class="platforms-grid">
-                <div class="platform-card animate-on-scroll">
-                    <div class="platform-icon">
-                        <i data-lucide="monitor"></i>
+            <div class="tech-grid">
+                <div class="tech-item"><i data-lucide="square"></i><span>OkHttp3</span></div>
+                <div class="tech-item"><i data-lucide="square"></i><span>Conscrypt</span></div>
+                <div class="tech-item"><i data-lucide="square"></i><span>WebView</span></div>
+                <div class="tech-item"><i data-lucide="square"></i><span>Flutter</span></div>
+                <div class="tech-item"><i data-lucide="square"></i><span>React Native</span></div>
+                <div class="tech-item"><i data-lucide="square"></i><span>Frida</span></div>
+                <div class="tech-item"><i data-lucide="square"></i><span>Android SDK</span></div>
+                <div class="tech-item"><i data-lucide="square"></i><span>iOS</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section class="download" id="download">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Download Trafexia</h2>
+                <p class="section-subtitle">Available for macOS, Windows, and Linux</p>
+            </div>
+
+            <div class="download-grid">
+                <!-- macOS -->
+                <div class="download-card">
+                    <div class="platform-icon macos"><i data-lucide="apple"></i></div>
+                    <h3 class="platform-name">macOS</h3>
+                    <div class="versions">
+                        <div class="version-item">
+                            <span class="version-label">Apple Silicon</span>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download"></i> arm64</a>
+                        </div>
+                        <div class="version-item">
+                            <span class="version-label">Intel</span>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download"></i> x64</a>
+                        </div>
                     </div>
-                    <h3>Windows</h3>
-                    <p>Windows 10/11 (64-bit)</p>
-                    <span class="platform-version">v1.0.0</span>
-                    <a href="https://github.com/danieldev23/trafexia/releases/latest" class="btn btn-download"
-                        target="_blank">
-                        <i data-lucide="download"></i>
-                        Download .exe
-                    </a>
                 </div>
 
-                <div class="platform-card featured animate-on-scroll">
-                    <div class="platform-badge">Recommended</div>
-                    <div class="platform-icon">
-                        <i data-lucide="laptop"></i>
+                <!-- Windows -->
+                <div class="download-card">
+                    <div class="platform-icon windows"><i data-lucide="square"></i></div>
+                    <h3 class="platform-name">Windows</h3>
+                    <div class="versions">
+                        <div class="version-item">
+                            <span class="version-label">Installer (Recommended)</span>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download"></i> Setup.exe</a>
+                        </div>
+                        <div class="version-item">
+                            <span class="version-label">Portable</span>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download"></i> Portable.exe</a>
+                        </div>
                     </div>
-                    <h3>macOS</h3>
-                    <p>macOS 10.15+ (Intel & Apple Silicon)</p>
-                    <span class="platform-version">v1.0.0</span>
-                    <a href="https://github.com/danieldev23/trafexia/releases/latest" class="btn btn-download"
-                        target="_blank">
-                        <i data-lucide="download"></i>
-                        Download .dmg
-                    </a>
                 </div>
 
-                <div class="platform-card animate-on-scroll">
-                    <div class="platform-icon">
-                        <i data-lucide="terminal"></i>
+                <!-- Linux -->
+                <div class="download-card">
+                    <div class="platform-icon linux"><i data-lucide="circle"></i></div>
+                    <h3 class="platform-name">Linux</h3>
+                    <div class="versions">
+                        <div class="version-item">
+                            <span class="version-label">AppImage (Universal)</span>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download"></i> AppImage</a>
+                        </div>
+                        <div class="version-item">
+                            <span class="version-label">arm64</span>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download"></i> arm64</a>
+                        </div>
                     </div>
-                    <h3>Linux</h3>
-                    <p>Ubuntu, Debian, Fedora (64-bit)</p>
-                    <span class="platform-version">v1.0.0</span>
-                    <a href="https://github.com/danieldev23/trafexia/releases/latest" class="btn btn-download"
-                        target="_blank">
-                        <i data-lucide="download"></i>
-                        Download .AppImage
-                    </a>
                 </div>
             </div>
 
-            <div class="platforms-note animate-on-scroll">
-                <i data-lucide="info"></i>
-                <p>Looking for other download options? Check out our <a
-                        href="https://github.com/danieldev23/trafexia/releases" target="_blank">GitHub Releases</a> for
-                    all available builds.</p>
+            <div class="download-notes">
+                <div class="note-item"><i data-lucide="info"></i><span><strong>Installation:</strong> Download and run the installer or extract the portable version to use immediately</span></div>
+                <div class="note-item"><i data-lucide="check"></i><span><strong>Requirements:</strong> Node.js 18+ (for development), or standalone executable for end users</span></div>
+                <div class="note-item"><i data-lucide="shield"></i><span><strong>Security:</strong> For advanced features, Android SDK and Frida tools are recommended</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section class="quickstart">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Quick Start Guide</h2>
+                <p class="section-subtitle">Get up and running in 5 minutes</p>
+            </div>
+
+            <div class="steps-container">
+                <div class="step"><div class="step-number">1</div><h3 class="step-title">Download & Install</h3><p class="step-desc">Download the appropriate version for your OS and run the installer</p></div>
+                <div class="arrow"><i data-lucide="arrow-right"></i></div>
+                <div class="step"><div class="step-number">2</div><h3 class="step-title">Start the Proxy</h3><p class="step-desc">Click "Start Proxy" button in the application to begin intercepting traffic</p></div>
+                <div class="arrow"><i data-lucide="arrow-right"></i></div>
+                <div class="step"><div class="step-number">3</div><h3 class="step-title">Configure Device</h3><p class="step-desc">Scan the QR code or manually configure your mobile device proxy settings</p></div>
+                <div class="arrow"><i data-lucide="arrow-right"></i></div>
+                <div class="step"><div class="step-number">4</div><h3 class="step-title">Install Certificate</h3><p class="step-desc">Follow the setup instructions to install the CA certificate on your device</p></div>
+                <div class="arrow"><i data-lucide="arrow-right"></i></div>
+                <div class="step"><div class="step-number">5</div><h3 class="step-title">Analyze Traffic</h3><p class="step-desc">All HTTP/HTTPS traffic is now captured and displayed in real-time</p></div>
+            </div>
+
+            <div class="cta-bottom">
+                <p>Need more help? Check the <a href="https://github.com/danieldev23/trafexia#readme" target="_blank" class="link">full documentation</a></p>
             </div>
         </div>
     </section>
 
     <!-- CTA Section -->
-    <section class="cta">
-        <div class="cta-bg">
-            <div class="cta-gradient"></div>
-        </div>
+    <section class="cta-final">
         <div class="container">
-            <div class="cta-content animate-on-scroll">
-                <h2>Ready to Intercept Traffic?</h2>
-                <p>Download Trafexia now and start analyzing mobile traffic like a pro.</p>
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to intercept mobile traffic?</h2>
+                <p class="cta-subtitle">Join hundreds of developers and security researchers using Trafexia</p>
                 <div class="cta-buttons">
-                    <a href="#platforms" class="btn btn-primary btn-lg">
-                        <i data-lucide="download"></i>
-                        Download Free
-                    </a>
-                    <a href="https://github.com/danieldev23/trafexia" target="_blank" class="btn btn-secondary btn-lg">
-                        <i data-lucide="github"></i>
-                        View on GitHub
-                    </a>
+                    <a href="#download" class="btn btn-primary btn-lg"><i data-lucide="download"></i> Download Now</a>
+                    <a href="https://github.com/danieldev23/trafexia" target="_blank" class="btn btn-outline btn-lg"><i data-lucide="star"></i> Star on GitHub</a>
                 </div>
             </div>
         </div>
@@ -422,74 +278,41 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-brand">
-                    <a href="#" class="footer-logo">
-                        <div class="logo-icon">
-                            <i data-lucide="radio-tower"></i>
-                        </div>
-                        <span>Trafexia</span>
-                    </a>
-                    <p>Professional-grade mobile traffic interception and analysis tool for developers and security
-                        researchers.</p>
-                    <div class="footer-social">
-                        <a href="https://github.com/trafexia" target="_blank" aria-label="GitHub">
+                <div class="footer-section">
+                    <h4 class="footer-title">Trafexia</h4>
+                    <p class="footer-desc">Professional mobile traffic interceptor for developers and security researchers</p>
+                    <div class="social-links">
+                        <a href="https://github.com/danieldev23/trafexia" target="_blank" aria-label="GitHub">
                             <i data-lucide="github"></i>
-                        </a>
-                        <a href="https://twitter.com/trafexia" target="_blank" aria-label="Twitter">
-                            <i data-lucide="twitter"></i>
-                        </a>
-                        <a href="https://discord.gg/trafexia" target="_blank" aria-label="Discord">
-                            <i data-lucide="message-circle"></i>
                         </a>
                     </div>
                 </div>
 
-                <div class="footer-links">
-                    <div class="footer-column">
-                        <h4>Product</h4>
-                        <ul>
-                            <li><a href="#features">Features</a></li>
-                            <li><a href="#platforms">Download</a></li>
-                            <li><a href="#">Changelog</a></li>
-                            <li><a href="#">Roadmap</a></li>
-                        </ul>
-                    </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#download">Download</a></li>
+                        <li><a href="https://github.com/danieldev23/trafexia" target="_blank">Documentation</a></li>
+                    </ul>
+                </div>
 
-                    <div class="footer-column">
-                        <h4>Resources</h4>
-                        <ul>
-                            <li><a href="#">Documentation</a></li>
-                            <li><a href="#">API Reference</a></li>
-                            <li><a href="#">Guides</a></li>
-                            <li><a href="#">FAQs</a></li>
-                        </ul>
-                    </div>
-
-                    <div class="footer-column">
-                        <h4>Community</h4>
-                        <ul>
-                            <li><a href="https://github.com/danieldev23/trafexia" target="_blank">GitHub</a></li>
-                            <li><a href="#">Discord</a></li>
-                            <li><a href="#">Contributing</a></li>
-                            <li><a href="#">Report Bug</a></li>
-                        </ul>
-                    </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://github.com/danieldev23/trafexia/issues" target="_blank">Report Issues</a></li>
+                        <li><a href="https://github.com/danieldev23/trafexia" target="_blank">Source Code</a></li>
+                        <li><a href="https://github.com/danieldev23/trafexia/blob/main/LICENSE" target="_blank">License</a></li>
+                    </ul>
                 </div>
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; 2024 Trafexia. All rights reserved.</p>
-                <div class="footer-legal">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Terms of Service</a>
-                    <a href="#">License (MIT)</a>
-                </div>
+                <p>&copy; 2026 Trafexia. All rights reserved. Licensed under MIT.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Scripts -->
     <script src="script.js"></script>
 </body>
-
 </html>
