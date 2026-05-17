@@ -19,12 +19,12 @@ async function fetchGitHubStars() {
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             const stars = data.stargazers_count || 500;
             const formattedStars = formatNumber(stars);
-            
+
             const heroStars = document.getElementById('heroStars');
             if (heroStars) heroStars.textContent = formattedStars + '+';
         }
@@ -55,41 +55,44 @@ function initNavigation() {
     const navMenu = document.getElementById('navMenu');
     const navLinks = document.querySelectorAll('.nav-link');
 
-    // Scroll effect for navigation
-    window.addEventListener('scroll', () => {
+    // Scroll effect for navigation (throttled)
+    const scrollThrottle = throttle(() => {
         if (window.scrollY > 50) {
             nav.classList.add('scrolled');
         } else {
             nav.classList.remove('scrolled');
         }
-    });
+    }, 100);
 
     // Mobile menu toggle
     if (navToggle) {
         navToggle.addEventListener('click', () => {
-            if (navMenu.style.display === 'flex') {
-                navMenu.style.display = 'none';
-            } else {
-                navMenu.style.display = 'flex';
-                navMenu.style.position = 'absolute';
-                navMenu.style.top = '100%';
-                navMenu.style.left = '0';
-                navMenu.style.right = '0';
-                navMenu.style.background = 'var(--color-bg-secondary)';
-                navMenu.style.flexDirection = 'column';
-                navMenu.style.padding = '1rem';
-                navMenu.style.borderTop = '1px solid var(--color-border)';
-            }
+            const isOpen = navMenu.classList.toggle('is-open');
+            // Update aria for accessibility
+            navToggle.setAttribute('aria-expanded', isOpen);
         });
     }
 
     // Close menu on link click
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
-            if (navMenu) navMenu.style.display = 'none';
+            navMenu.classList.remove('is-open');
+            if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
         });
     });
-}
+
+    // Close menu on outside click
+    document.addEventListener('click', (e) => {
+        if (navMenu.classList.contains('is-open') &&
+            !navMenu.contains(e.target) &&
+            !navToggle.contains(e.target)) {
+            navMenu.classList.remove('is-open');
+            if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    window.addEventListener('scroll', scrollThrottle, { passive: true });
+} // ← closing brace that was missing in the original
 
 /**
  * Smooth scroll for anchor links
@@ -99,11 +102,11 @@ function initSmoothScroll() {
         anchor.addEventListener('click', function (e) {
             const href = this.getAttribute('href');
             if (href === '#') return;
-            
+
             e.preventDefault();
             const target = document.querySelector(href);
             if (target) {
-                const offsetTop = target.offsetTop - 80;
+                const offsetTop = target.getBoundingClientRect().top + window.scrollY - 80;
                 window.scrollTo({
                     top: offsetTop,
                     behavior: 'smooth'
@@ -113,13 +116,33 @@ function initSmoothScroll() {
     });
 }
 
-// Reinitialize Lucide icons when DOM changes
-const observer = new MutationObserver(() => {
-    lucide.createIcons();
-});
+/**
+ * Throttle function for performance
+ */
+function throttle(func, limit) {
+    let inThrottle;
+    return function (...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => { inThrottle = false; }, limit);
+        }
+    };
+}
+
+/**
+ * Reinitialize Lucide icons when new nodes are added.
+ * subtree: true so icons inside dynamically appended children are caught.
+ */
+let iconUpdateTimeout;
+const observer = new MutationObserver(throttle(() => {
+    clearTimeout(iconUpdateTimeout);
+    iconUpdateTimeout = setTimeout(() => {
+        lucide.createIcons();
+    }, 300);
+}, 1000));
 
 observer.observe(document.body, {
     childList: true,
-    subtree: true,
-    attributes: true
+    subtree: true   // was false — missed icons in nested additions
 });

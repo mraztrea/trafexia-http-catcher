@@ -5,41 +5,44 @@
     --color-bg-secondary: #12121a;
     --color-bg-tertiary: #1a1a24;
     --color-bg-card: rgba(26, 26, 36, 0.8);
-    
+    --color-bg-card-hover: rgba(30, 30, 44, 0.9); /* was undefined — caused transparent hover flash */
+
     --color-primary: #0ea5e9;
     --color-primary-light: #38bdf8;
     --color-primary-dark: #0284c7;
     --color-secondary: #06b6d4;
     --color-accent: #14b8a6;
-    
+
     --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #14b8a6 100%);
     --gradient-glow: linear-gradient(135deg, rgba(14, 165, 233, 0.3) 0%, rgba(6, 182, 212, 0.3) 50%, rgba(20, 184, 166, 0.3) 100%);
-    
+
     --color-text-primary: #f8fafc;
     --color-text-secondary: #94a3b8;
     --color-text-muted: #64748b;
-    
+
     --color-success: #22c55e;
     --color-warning: #eab308;
     --color-error: #ef4444;
-    
+
     --color-get: #22c55e;
     --color-post: #3b82f6;
     --color-put: #eab308;
     --color-delete: #ef4444;
-    
+
     --color-border: rgba(148, 163, 184, 0.1);
     --color-border-hover: rgba(148, 163, 184, 0.2);
-    
+
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
     --shadow-glow: 0 0 40px rgba(14, 165, 233, 0.3);
-    
+
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -47,6 +50,8 @@
 
 html {
     scroll-behavior: smooth;
+    /* Prevent layout shift from scrollbar appearing */
+    scrollbar-gutter: stable;
 }
 
 body {
@@ -55,16 +60,18 @@ body {
     color: var(--color-text-primary);
     line-height: 1.6;
     overflow-x: hidden;
+    /* Prevent iOS tap highlight */
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* Utilities */
+/* ─── Utilities ─────────────────────────────────────────── */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
 }
 
-/* Navigation */
+/* ─── Navigation ─────────────────────────────────────────── */
 .nav {
     position: fixed;
     top: 0;
@@ -78,6 +85,7 @@ body {
 .nav.scrolled {
     background: rgba(10, 10, 15, 0.95);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 1px 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -88,6 +96,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative; /* needed for mobile dropdown positioning */
 }
 
 .nav-logo {
@@ -98,6 +107,7 @@ body {
     text-decoration: none;
     font-weight: 700;
     font-size: 1.25rem;
+    flex-shrink: 0;
 }
 
 .logo-icon {
@@ -108,6 +118,7 @@ body {
     height: 32px;
     background: var(--gradient-primary);
     border-radius: 8px;
+    flex-shrink: 0;
 }
 
 .logo-icon svg {
@@ -129,6 +140,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -152,48 +164,92 @@ body {
     border: none;
     color: var(--color-text-primary);
     cursor: pointer;
+    padding: 0.25rem;
+    line-height: 0;
 }
 
+/* Mobile nav */
 @media (max-width: 768px) {
-    .nav-menu {
-        display: none;
-    }
-    
     .nav-toggle {
         display: flex;
     }
+
+    .nav-menu {
+        /* Hidden by default on mobile; toggled via .is-open class */
+        display: none;
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 10px;
+        padding: 0.75rem;
+        margin: 0 20px;
+        box-shadow: var(--shadow-lg);
+        /* Animation */
+        opacity: 0;
+        transform: translateY(-8px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .nav-menu.is-open {
+        display: flex;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .nav-link {
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+    }
+
+    .nav-link:hover {
+        background: var(--color-bg-tertiary);
+    }
+
+    .github-link {
+        margin-top: 0.5rem;
+        justify-content: center;
+    }
 }
 
-/* Hero Section */
+/* ─── Hero Section ───────────────────────────────────────── */
 .hero {
     position: relative;
     min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 120px 20px 80px;
+    overflow: hidden;
+}
+
+/* Inner wrapper handles the 2-col grid with max-width */
+.hero-inner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4rem;
     align-items: center;
-    padding-top: 120px;
-    padding-bottom: 80px;
-    overflow: hidden;
 }
 
 .hero-background {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -1;
+    inset: 0;
+    z-index: 0;
     overflow: hidden;
+    pointer-events: none;
 }
 
 .grid-bg {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
+    inset: 0;
+    background-image:
         linear-gradient(rgba(14, 165, 233, 0.05) 1px, transparent 1px),
         linear-gradient(90deg, rgba(14, 165, 233, 0.05) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -204,6 +260,8 @@ body {
     border-radius: 50%;
     filter: blur(100px);
     opacity: 0.3;
+    /* Use will-change only on orbs to avoid forcing compositing on entire page */
+    will-change: opacity;
 }
 
 .gradient-orb-1 {
@@ -224,6 +282,7 @@ body {
 
 .hero-content {
     z-index: 1;
+    min-width: 0; /* prevent grid blowout */
 }
 
 .hero-title {
@@ -264,7 +323,7 @@ body {
 .stat {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 
 .stat-value {
@@ -284,6 +343,7 @@ body {
     flex-wrap: wrap;
 }
 
+/* ─── Buttons ────────────────────────────────────────────── */
 .btn {
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
@@ -293,9 +353,21 @@ body {
     font-weight: 500;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     transition: var(--transition);
     font-family: inherit;
+    font-size: 0.9375rem;
+    line-height: 1;
+    white-space: nowrap;
+    /* Prevent text selection on double-click */
+    user-select: none;
+}
+
+.btn svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
 }
 
 .btn-lg {
@@ -336,9 +408,10 @@ body {
     border-color: var(--color-primary);
 }
 
-/* Hero Image */
+/* ─── Hero Image / Demo Window ───────────────────────────── */
 .hero-image {
     z-index: 1;
+    min-width: 0;
 }
 
 .demo-window {
@@ -347,7 +420,6 @@ body {
     border-radius: 12px;
     overflow: hidden;
     box-shadow: var(--shadow-lg);
-    backdrop-filter: blur(10px);
 }
 
 .window-header {
@@ -379,7 +451,7 @@ body {
 
 .window-content {
     padding: 1.5rem;
-    min-height: 300px;
+    min-height: 200px;
 }
 
 .demo-line {
@@ -393,8 +465,11 @@ body {
     width: 60%;
 }
 
-.demo-line.animated {
-    animation: shimmer 2s infinite;
+/* Use prefers-reduced-motion to respect accessibility settings */
+@media (prefers-reduced-motion: no-preference) {
+    .demo-line.animated {
+        animation: shimmer 2s infinite;
+    }
 }
 
 @keyframes shimmer {
@@ -402,20 +477,14 @@ body {
     50% { opacity: 1; }
 }
 
-/* Features Section */
-.features {
-    padding: 120px 0;
-    position: relative;
-    z-index: 1;
-}
-
+/* ─── Section Commons ────────────────────────────────────── */
 .section-header {
     text-align: center;
     margin-bottom: 4rem;
 }
 
 .section-title {
-    font-size: clamp(2rem, 5vw, 2.5rem);
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
     font-weight: 900;
     margin-bottom: 1rem;
 }
@@ -425,6 +494,13 @@ body {
     color: var(--color-text-secondary);
     max-width: 500px;
     margin: 0 auto;
+}
+
+/* ─── Features Section ───────────────────────────────────── */
+.features {
+    padding: 120px 0;
+    position: relative;
+    z-index: 1;
 }
 
 .features-grid {
@@ -459,6 +535,12 @@ body {
     justify-content: center;
     margin-bottom: 1rem;
     color: var(--color-primary);
+    flex-shrink: 0;
+}
+
+.feature-icon svg {
+    width: 24px;
+    height: 24px;
 }
 
 .feature-title {
@@ -473,7 +555,7 @@ body {
     line-height: 1.6;
 }
 
-/* Showcase Section */
+/* ─── Showcase Section ───────────────────────────────────── */
 .showcase {
     padding: 120px 0;
 }
@@ -488,6 +570,17 @@ body {
     text-align: center;
 }
 
+.showcase-item h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.showcase-item p {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}
+
 .showcase-image {
     background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
@@ -497,6 +590,11 @@ body {
     align-items: center;
     justify-content: center;
     margin-bottom: 1rem;
+    transition: var(--transition);
+}
+
+.showcase-image:hover {
+    border-color: var(--color-primary);
 }
 
 .img-placeholder {
@@ -506,10 +604,14 @@ body {
     width: 100%;
     height: 100%;
     color: var(--color-primary);
-    font-size: 3rem;
 }
 
-/* Tech Stack */
+.img-placeholder svg {
+    width: 48px;
+    height: 48px;
+}
+
+/* ─── Tech Stack / Platforms ─────────────────────────────── */
 .platforms-info {
     padding: 120px 0;
     background: linear-gradient(180deg, rgba(20, 184, 166, 0.05) 0%, rgba(14, 165, 233, 0.05) 100%);
@@ -517,12 +619,12 @@ body {
 
 .tech-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 1.5rem;
 }
 
 .tech-item {
-    padding: 1.5rem;
+    padding: 1.5rem 1rem;
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
     border-radius: 10px;
@@ -533,20 +635,22 @@ body {
     gap: 0.75rem;
     transition: var(--transition);
     color: var(--color-text-secondary);
+    font-size: 0.875rem;
 }
 
 .tech-item:hover {
     background: var(--color-bg-card-hover);
     color: var(--color-primary);
     transform: translateY(-2px);
+    border-color: var(--color-primary);
 }
 
 .tech-item svg {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
 }
 
-/* Download Section */
+/* ─── Download Section ───────────────────────────────────── */
 .download {
     padding: 120px 0;
 }
@@ -564,6 +668,11 @@ body {
     border: 1px solid var(--color-border);
     border-radius: 12px;
     text-align: center;
+    transition: var(--transition);
+}
+
+.download-card:hover {
+    border-color: var(--color-border-hover);
 }
 
 .platform-icon {
@@ -575,7 +684,11 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
+}
+
+.platform-icon svg {
+    width: 32px;
+    height: 32px;
 }
 
 .platform-icon.macos { color: #a2aaad; }
@@ -618,12 +731,19 @@ body {
     gap: 0.5rem;
     transition: var(--transition);
     font-weight: 500;
+    font-size: 0.9rem;
 }
 
 .download-btn:hover {
     background: var(--color-primary);
     color: white;
     border-color: var(--color-primary);
+}
+
+.download-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
 }
 
 .download-notes {
@@ -639,57 +759,86 @@ body {
     border-radius: 6px;
     display: flex;
     gap: 1rem;
+    align-items: flex-start;
 }
 
 .note-item svg {
     color: var(--color-primary);
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
+    margin-top: 2px;
 }
 
-/* Quick Start */
+/* ─── Quick Start Section ────────────────────────────────── */
 .quickstart {
     padding: 120px 0;
     background: linear-gradient(180deg, rgba(20, 184, 166, 0.05) 0%, rgba(14, 165, 233, 0.05) 100%);
 }
 
+/*
+ * steps-container has 9 children: 5 .step + 4 .arrow (interleaved).
+ * Use `grid-template-columns: repeat(9, auto)` on desktop so each child
+ * gets exactly one column and arrows stay between steps.
+ * On mobile collapse to a single column with arrows rotated.
+ */
 .steps-container {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(9, auto);
+    gap: 0.5rem;
     align-items: center;
+    justify-content: center;
     margin-bottom: 3rem;
+    overflow-x: auto;          /* graceful degradation on very small screens */
+    -webkit-overflow-scrolling: touch;
 }
 
 .step {
-    padding: 1.5rem;
+    padding: 1.25rem 1rem;
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
     border-radius: 10px;
+    min-width: 130px;
+    max-width: 180px;
+    transition: var(--transition);
+}
+
+.step:hover {
+    border-color: var(--color-primary);
 }
 
 .step-number {
     font-size: 2rem;
     font-weight: 900;
     color: var(--color-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    line-height: 1;
 }
 
 .step-title {
     font-weight: 700;
     margin-bottom: 0.5rem;
+    font-size: 0.9375rem;
 }
 
 .step-desc {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--color-text-secondary);
+    line-height: 1.5;
 }
 
 .arrow {
     display: flex;
     justify-content: center;
+    align-items: center;
     color: var(--color-primary);
+    padding: 0 0.25rem;
+    flex-shrink: 0;
+}
+
+.arrow svg {
+    width: 20px;
+    height: 20px;
 }
 
 .cta-bottom {
@@ -707,18 +856,7 @@ body {
     text-decoration: underline;
 }
 
-@media (max-width: 768px) {
-    .steps-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .arrow {
-        transform: rotate(90deg);
-        margin: 0.5rem 0;
-    }
-}
-
-/* CTA Section */
+/* ─── CTA Final Section ──────────────────────────────────── */
 .cta-final {
     padding: 80px 0;
 }
@@ -728,7 +866,7 @@ body {
 }
 
 .cta-title {
-    font-size: 2.5rem;
+    font-size: clamp(1.75rem, 5vw, 2.5rem); /* was hardcoded 2.5rem — overflowed on mobile */
     font-weight: 900;
     margin-bottom: 1rem;
 }
@@ -746,7 +884,7 @@ body {
     flex-wrap: wrap;
 }
 
-/* Footer */
+/* ─── Footer ─────────────────────────────────────────────── */
 .footer {
     background: var(--color-bg-secondary);
     border-top: 1px solid var(--color-border);
@@ -756,7 +894,7 @@ body {
 
 .footer-content {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 2rem;
     margin-bottom: 2rem;
 }
@@ -775,6 +913,7 @@ body {
 .footer-desc {
     color: var(--color-text-secondary);
     font-size: 0.95rem;
+    line-height: 1.6;
 }
 
 .social-links {
@@ -827,29 +966,114 @@ body {
     font-size: 0.875rem;
 }
 
-/* Responsive */
+/* ─── Responsive Breakpoints ─────────────────────────────── */
+
+/* Medium screens */
+@media (max-width: 1024px) {
+    .hero-inner {
+        gap: 2.5rem;
+    }
+}
+
+/* Mobile */
 @media (max-width: 768px) {
+    /* Hero */
     .hero {
-        grid-template-columns: 1fr;
-        gap: 2rem;
         padding-top: 100px;
         padding-bottom: 60px;
     }
-    
+
+    .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        text-align: center;
+    }
+
     .hero-image {
         order: -1;
     }
-    
+
+    .hero-subtitle {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .hero-stats {
+        justify-content: center;
+    }
+
     .hero-cta {
         flex-direction: column;
+        align-items: stretch;
     }
-    
+
     .btn {
         width: 100%;
         justify-content: center;
     }
-    
+
+    /* Features */
     .features-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Showcase */
+    .showcase-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Tech */
+    .tech-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
+
+    /* Quick Start steps — stack vertically */
+    .steps-container {
+        grid-template-columns: 1fr;
+        overflow-x: visible;
+    }
+
+    .step {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .arrow {
+        transform: rotate(90deg);
+        margin: 0.25rem auto;
+    }
+
+    /* Download notes */
+    .download-notes {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Extra small */
+@media (max-width: 480px) {
+    .hero {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .container {
+        padding: 0 16px;
+    }
+
+    .features,
+    .showcase,
+    .platforms-info,
+    .download,
+    .quickstart {
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+
+    .section-header {
+        margin-bottom: 2.5rem;
+    }
+
+    .window-content {
+        min-height: 150px;
     }
 }
