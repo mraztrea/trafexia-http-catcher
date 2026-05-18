@@ -18,6 +18,7 @@ import {
   GitCompare,
   Map,
   Cpu,
+  Coffee,
 } from "lucide-vue-next";
 import { useToast } from "primevue/usetoast";
 
@@ -39,6 +40,7 @@ import BreakpointEditor from "@/components/BreakpointEditor.vue";
 import TimelineView from "@/components/TimelineView.vue";
 import SslBypassView from "@/components/SslBypassView.vue";
 import LicenseDialog from "@/components/LicenseDialog.vue";
+import DonatePromptDialog from "@/components/DonatePromptDialog.vue";
 import ThrottleControl from "@/components/ThrottleControl.vue";
 import DiffViewer from "@/components/DiffViewer.vue";
 import MapRulesManager from "@/components/MapRulesManager.vue";
@@ -281,6 +283,17 @@ function exportPostman() {
           </button>
         </div>
 
+        <!-- Coffee Donation Button (Only for Free tier) -->
+        <button
+          v-if="licenseStore.isFree"
+          class="coffee-badge-btn"
+          @click="licenseStore.showCoffeeDialog = true"
+          title="Buy the Creator a Coffee"
+        >
+          <Coffee :size="12" class="cup-glowing" />
+          <span>Donate</span>
+        </button>
+
         <!-- License Badge -->
         <button
           class="license-badge-premium"
@@ -407,6 +420,9 @@ function exportPostman() {
 
     <!-- License Dialog -->
     <LicenseDialog />
+
+    <!-- Donate Prompt Dialog -->
+    <DonatePromptDialog />
 
     <!-- Diff Viewer -->
     <DiffViewer v-if="showDiff" @close="showDiff = false" />
@@ -1017,5 +1033,45 @@ function exportPostman() {
   .filter-sidebar { width: 100%; max-width: 100vw; position: absolute; z-index: 50; left: 0; top: 0; bottom: 0; }
   /* Hide tools group on very small screens, keep utility */
   .header-right > .action-group:first-child { display: none; }
+}
+
+/* Coffee Donation Header Button */
+.coffee-badge-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid rgba(255, 221, 0, 0.2);
+  background: rgba(255, 221, 0, 0.08);
+  color: #FFDD00;
+  transition: all 0.2s;
+}
+
+.coffee-badge-btn:hover {
+  background: rgba(255, 221, 0, 0.18);
+  border-color: rgba(255, 221, 0, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px rgba(255, 221, 0, 0.15);
+}
+
+.cup-glowing {
+  animation: cup-float 2s infinite ease-in-out;
+}
+
+@keyframes cup-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+/* Media query adjustment for coffee button */
+@media (max-width: 1000px) {
+  .coffee-badge-btn span { display: none; }
+  .coffee-badge-btn { padding: 4px 6px; }
 }
 </style>

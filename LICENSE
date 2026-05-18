@@ -1,21 +1,26 @@
-MIT License
+Trafexia Source-Available License
 
-Copyright (c) 2026 Đặng Quốc Huy - danieldev23
+Copyright (c) 2026 Đặng Quốc Huy - danieldev23 (dangquochuy.connect@gmail.com).
+All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This license governs the use of the accompanying software ("Trafexia"). By using, compiling, copying, or distributing any part of the software, you accept this license. If you do not accept the license, do not use the software.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Definitions
+- "Trafexia" refers to the source code, assets, pre-built binaries, installers, and documentation in this repository.
+- "Official License" refers to a valid activation key purchased from the official store (e.g., https://buymeacoffee.com/huypc9294).
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. Permitted Uses
+Subject to the terms of this license, you are granted the non-exclusive, non-transferable, limited right to:
+- View the source code on the official repository for educational purposes, security auditing, and verification.
+- Submit contributions (e.g., bug reports, feature suggestions, or pull requests) to the official repository.
+- Compile and run the software locally on your personal device for personal, non-commercial testing and evaluation purposes only.
+
+3. Restricted Uses (Strictly Prohibited)
+You are STRICTLY PROHIBITED from:
+- Circumventing, bypassing, disabling, patching, or modifying the licensing, activation, features gate, and billing verification mechanisms inside the software (including but not limited to the license store, database checks, or local validation).
+- Packaging, distributing, publishing, hosting, or selling pre-built binaries, installers (.dmg, .exe, .AppImage, etc.), or modified versions of Trafexia under any form, whether for free or for commercial gain.
+- Using Trafexia for professional, commercial, or production purposes (including corporate security audits, commercial penetration testing, or development within a commercial entity) without purchasing a valid Official License key.
+- Sub-licensing, renting, or leasing the software.
+
+4. Disclaimer of Warranty
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

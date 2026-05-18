@@ -57,7 +57,7 @@ function close() {
 }
 
 function openPurchase() {
-  window.open('https://trafexia.dev/pricing', '_blank');
+  window.open('https://buymeacoffee.com/huypc9294', '_blank');
 }
 
 async function deactivate() {
@@ -88,7 +88,8 @@ async function deactivate() {
             <div v-if="licenseStore.isPro" class="pro-active-card">
               <Crown :size="36" class="pro-crown" />
               <h3>Professional License Active</h3>
-              <p v-if="licenseStore.daysRemaining !== null" class="days-info">{{ licenseStore.daysRemaining }} days remaining</p>
+              <p v-if="licenseStore.daysRemaining !== null" class="days-info">{{ licenseStore.daysRemaining }} days
+                remaining</p>
               <p v-if="licenseStore.license.email" class="email-info">{{ licenseStore.license.email }}</p>
               <div class="divider"></div>
               <button class="tier-btn deactivate" @click="deactivate">Deactivate License</button>
@@ -131,13 +132,15 @@ async function deactivate() {
                   </div>
                 </div>
                 <button class="tier-btn primary" @click="openPurchase">
-                  Upgrade Now <ArrowRight :size="14" />
+                  Upgrade Now
+                  <ArrowRight :size="14" />
                 </button>
               </div>
             </div>
 
             <div class="footer" v-if="!licenseStore.isPro">
-              <p>Already have a license? <button class="link-btn" @click="activePanel = 'activate'">Activate here</button></p>
+              <p>Already have a license? <button class="link-btn" @click="activePanel = 'activate'">Activate
+                  here</button></p>
             </div>
           </div>
 
@@ -162,7 +165,7 @@ async function deactivate() {
                   <input v-model="licenseKey" type="text" class="mono" placeholder="TRFX-XXXX-XXXX-XXXX" />
                 </div>
               </div>
-              
+
               <button class="activate-btn" @click="activate" :disabled="isActivating">
                 <Loader2 v-if="isActivating" class="animate-spin" :size="16" />
                 <span v-else>Verify Activation</span>
@@ -296,8 +299,16 @@ async function deactivate() {
   gap: 4px;
 }
 
-.amount { font-size: 32px; font-weight: 700; color: #F1F5F9; }
-.period { font-size: 14px; color: #64748B; }
+.amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: #F1F5F9;
+}
+
+.period {
+  font-size: 14px;
+  color: #64748B;
+}
 
 .features-list {
   display: flex;
@@ -392,8 +403,15 @@ async function deactivate() {
 }
 
 @keyframes crownPulse {
-  0%, 100% { filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.3)); }
-  50% { filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.6)); }
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.3));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.6));
+  }
 }
 
 .pro-active-card h3 {
@@ -468,16 +486,16 @@ async function deactivate() {
   .pricing-panel {
     padding: 32px 24px;
   }
-  
+
   .header h2 {
     font-size: 24px;
   }
-  
+
   .tier-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .tier-card {
     padding: 24px;
   }
@@ -487,23 +505,52 @@ async function deactivate() {
   .pricing-panel {
     padding: 24px;
   }
-  
+
   .header {
     margin-bottom: 24px;
   }
-  
+
   .features-list {
     margin-bottom: 20px;
   }
 }
 
 /* Activate Panel */
-.activate-panel { padding: 48px; }
-.form-body { display: flex; flex-direction: column; gap: 20px; }
-.input-group { display: flex; flex-direction: column; gap: 8px; }
-.input-group label { font-size: 12px; font-weight: 600; color: #94A3B8; text-transform: uppercase; }
-.input-wrap { position: relative; display: flex; align-items: center; }
-.input-wrap .icon { position: absolute; left: 12px; color: #64748B; }
+.activate-panel {
+  padding: 48px;
+}
+
+.form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94A3B8;
+  text-transform: uppercase;
+}
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrap .icon {
+  position: absolute;
+  left: 12px;
+  color: #64748B;
+}
+
 .input-wrap input {
   width: 100%;
   height: 44px;
@@ -514,8 +561,15 @@ async function deactivate() {
   color: #F1F5F9;
   font-size: 14px;
 }
-.input-wrap input:focus { border-color: #38BDF8; outline: none; }
-.mono { font-family: 'JetBrains Mono', monospace; }
+
+.input-wrap input:focus {
+  border-color: #38BDF8;
+  outline: none;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+}
 
 .activate-btn {
   height: 44px;
@@ -527,14 +581,57 @@ async function deactivate() {
   cursor: pointer;
 }
 
-.panel-footer { margin-top: 24px; text-align: center; }
-.back-btn { background: none; border: none; color: #64748B; font-size: 13px; cursor: pointer; }
+.panel-footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #64748B;
+  font-size: 13px;
+  cursor: pointer;
+}
 
 /* Transitions */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-.animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.animate-spin { animation: spin 1s linear infinite; }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

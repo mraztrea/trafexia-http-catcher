@@ -335,7 +335,7 @@ If you find Trafexia helpful for your development and reverse engineering work, 
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **Trafexia Source-Available License** - see the [LICENSE](LICENSE) file for details.
 
 The tool is provided for educational and authorized testing purposes only. Users are responsible for compliance with local laws and regulations.
 

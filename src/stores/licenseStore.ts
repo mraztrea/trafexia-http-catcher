@@ -13,6 +13,7 @@ export const useLicenseStore = defineStore('license', () => {
   const isLoading = ref(false);
   const isLoadingGates = ref(true); // true until Firestore gates are fetched
   const showUpgradeDialog = ref(false);
+  const showCoffeeDialog = ref(false);
   const upgradeFeature = ref<string>('');
 
   // Getters
@@ -131,6 +132,7 @@ export const useLicenseStore = defineStore('license', () => {
     isLoading,
     isLoadingGates,
     showUpgradeDialog,
+    showCoffeeDialog,
     upgradeFeature,
 
     // Getters
