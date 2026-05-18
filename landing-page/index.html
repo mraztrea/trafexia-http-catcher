@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Trafexia - Professional mobile traffic interceptor for HTTP/HTTPS analysis, SSL bypass, request mocking, and network testing.">
-    <meta name="keywords" content="traffic interceptor, MITM proxy, HTTP analyzer, mobile testing, SSL bypass, Frida, APK patcher">
+    <meta name="description"
+        content="Trafexia - Professional mobile traffic interceptor for HTTP/HTTPS analysis, SSL bypass, request mocking, and network testing.">
+    <meta name="keywords"
+        content="traffic interceptor, MITM proxy, HTTP analyzer, mobile testing, SSL bypass, Frida, APK patcher">
     <meta name="author" content="Trafexia Team">
     <meta property="og:title" content="Trafexia - Mobile Traffic Interceptor">
-    <meta property="og:description" content="Intercept, analyze, and manipulate mobile app traffic with advanced security testing tools.">
+    <meta property="og:description"
+        content="Intercept, analyze, and manipulate mobile app traffic with advanced security testing tools.">
     <meta property="og:type" content="website">
 
     <title>Trafexia - Professional Mobile Traffic Interceptor</title>
@@ -15,13 +19,15 @@
     <!-- Fonts: Inter (was already used) — preconnect for perf -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
 
     <!-- Lucide Icons: pin to a specific version for stability in production -->
     <script src="https://unpkg.com/lucide@0.395.0/dist/umd/lucide.min.js" defer></script>
 
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <!-- Navigation -->
     <nav class="nav" id="nav" role="navigation" aria-label="Main navigation">
@@ -35,12 +41,14 @@
                 <a href="#features" class="nav-link" role="menuitem">Features</a>
                 <a href="#showcase" class="nav-link" role="menuitem">Showcase</a>
                 <a href="#download" class="nav-link" role="menuitem">Download</a>
-                <a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer" class="nav-link github-link" role="menuitem">
+                <a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer"
+                    class="nav-link github-link" role="menuitem">
                     <i data-lucide="github" aria-hidden="true"></i> GitHub
                 </a>
             </div>
 
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navMenu">
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false"
+                aria-controls="navMenu">
                 <i data-lucide="menu" aria-hidden="true"></i>
             </button>
         </div>
@@ -55,58 +63,60 @@
         </div>
 
         <div class="hero-inner">
-        <div class="hero-content">
-            <h1 class="hero-title">
-                <span class="hero-title-main">Professional Mobile</span>
-                <span class="hero-title-accent">Traffic Interceptor</span>
-            </h1>
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="hero-title-main">Professional Mobile</span>
+                    <span class="hero-title-accent">Traffic Interceptor</span>
+                </h1>
 
-            <p class="hero-subtitle">Intercept, analyze, and manipulate HTTP/HTTPS traffic from mobile devices. Built with advanced security testing tools for developers and security researchers.</p>
+                <p class="hero-subtitle">Intercept, analyze, and manipulate HTTP/HTTPS traffic from mobile devices.
+                    Built with advanced security testing tools for developers and security researchers.</p>
 
-            <div class="hero-stats" aria-label="Statistics">
-                <div class="stat">
-                    <div class="stat-value" id="heroStars">500+</div>
-                    <div class="stat-label">GitHub Stars</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">3</div>
-                    <div class="stat-label">Platforms</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">10+</div>
-                    <div class="stat-label">Features</div>
-                </div>
-            </div>
-
-            <div class="hero-cta">
-                <a href="#download" class="btn btn-primary btn-lg">
-                    <i data-lucide="download" aria-hidden="true"></i> Download Now
-                </a>
-                <a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
-                    <i data-lucide="code" aria-hidden="true"></i> View Source
-                </a>
-            </div>
-        </div>
-
-        <!-- Hero Demo Window -->
-        <div class="hero-image" aria-hidden="true">
-            <div class="demo-window">
-                <div class="window-header">
-                    <span class="window-title">Trafexia</span>
-                    <div class="window-controls">
-                        <div class="control"></div>
-                        <div class="control"></div>
-                        <div class="control"></div>
+                <div class="hero-stats" aria-label="Statistics">
+                    <div class="stat">
+                        <div class="stat-value" id="heroStars">500+</div>
+                        <div class="stat-label">GitHub Stars</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">Platforms</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">10+</div>
+                        <div class="stat-label">Features</div>
                     </div>
                 </div>
-                <div class="window-content">
-                    <div class="demo-line animated"></div>
-                    <div class="demo-line animated" style="animation-delay: 0.1s;"></div>
-                    <div class="demo-line animated" style="animation-delay: 0.2s;"></div>
-                    <div class="demo-line half"></div>
+
+                <div class="hero-cta">
+                    <a href="#download" class="btn btn-primary btn-lg">
+                        <i data-lucide="download" aria-hidden="true"></i> Download Now
+                    </a>
+                    <a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer"
+                        class="btn btn-secondary btn-lg">
+                        <i data-lucide="code" aria-hidden="true"></i> View Source
+                    </a>
                 </div>
             </div>
-        </div>
+
+            <!-- Hero Demo Window -->
+            <div class="hero-image" aria-hidden="true">
+                <div class="demo-window">
+                    <div class="window-header">
+                        <span class="window-title">Trafexia</span>
+                        <div class="window-controls">
+                            <div class="control"></div>
+                            <div class="control"></div>
+                            <div class="control"></div>
+                        </div>
+                    </div>
+                    <div class="window-content">
+                        <div class="demo-line animated"></div>
+                        <div class="demo-line animated" style="animation-delay: 0.1s;"></div>
+                        <div class="demo-line animated" style="animation-delay: 0.2s;"></div>
+                        <div class="demo-line half"></div>
+                    </div>
+                </div>
+            </div>
         </div><!-- /.hero-inner -->
     </section>
 
@@ -115,54 +125,64 @@
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title" id="features-title">Powerful Features</h2>
-                <p class="section-subtitle">Everything you need for mobile app security testing and reverse engineering</p>
+                <p class="section-subtitle">Everything you need for mobile app security testing and reverse engineering
+                </p>
             </div>
 
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="lock-open" aria-hidden="true"></i></div>
                     <h3 class="feature-title">SSL Pinning Bypass</h3>
-                    <p class="feature-desc">Bypass SSL certificate pinning with built-in scripts for OkHttp3, Conscrypt, WebView, Flutter, and React Native</p>
+                    <p class="feature-desc">Bypass SSL certificate pinning with built-in scripts for OkHttp3, Conscrypt,
+                        WebView, Flutter, and React Native</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="package" aria-hidden="true"></i></div>
                     <h3 class="feature-title">APK Patcher</h3>
-                    <p class="feature-desc">Inject bypass scripts directly into APKs without requiring rooted devices. Works with Frida Gadget</p>
+                    <p class="feature-desc">Inject bypass scripts directly into APKs without requiring rooted devices.
+                        Works with Frida Gadget</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="activity" aria-hidden="true"></i></div>
                     <h3 class="feature-title">Real-time Capture</h3>
-                    <p class="feature-desc">Live HTTP/HTTPS traffic interception with detailed request/response analysis and timing information</p>
+                    <p class="feature-desc">Live HTTP/HTTPS traffic interception with detailed request/response analysis
+                        and timing information</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="zap" aria-hidden="true"></i></div>
                     <h3 class="feature-title">Request Mapping</h3>
-                    <p class="feature-desc">Map URLs to different destinations with regex pattern support. Perfect for API testing and debugging</p>
+                    <p class="feature-desc">Map URLs to different destinations with regex pattern support. Perfect for
+                        API testing and debugging</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="copy" aria-hidden="true"></i></div>
                     <h3 class="feature-title">Mock Responses</h3>
-                    <p class="feature-desc">Create custom mock responses with status codes, headers, and bodies. Test error scenarios easily</p>
+                    <p class="feature-desc">Create custom mock responses with status codes, headers, and bodies. Test
+                        error scenarios easily</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="play-circle" aria-hidden="true"></i></div>
                     <h3 class="feature-title">Frida Integration</h3>
-                    <p class="feature-desc">Dynamic code injection and runtime hooking with Frida server integration for advanced testing</p>
+                    <p class="feature-desc">Dynamic code injection and runtime hooking with Frida server integration for
+                        advanced testing</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="filter" aria-hidden="true"></i></div>
                     <h3 class="feature-title">Advanced Filtering</h3>
-                    <p class="feature-desc">Filter by method, status code, host, URL, size, duration, and content type with regex support</p>
+                    <p class="feature-desc">Filter by method, status code, host, URL, size, duration, and content type
+                        with regex support</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="download-cloud" aria-hidden="true"></i></div>
                     <h3 class="feature-title">Export Options</h3>
-                    <p class="feature-desc">Export as HAR, cURL, Python, JSON, or Postman collections. Direct integration with popular tools</p>
+                    <p class="feature-desc">Export as HAR, cURL, Python, JSON, or Postman collections. Direct
+                        integration with popular tools</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i data-lucide="gauge" aria-hidden="true"></i></div>
                     <h3 class="feature-title">Throttle Control</h3>
-                    <p class="feature-desc">Simulate network conditions with bandwidth limiting and latency injection for performance testing</p>
+                    <p class="feature-desc">Simulate network conditions with bandwidth limiting and latency injection
+                        for performance testing</p>
                 </div>
             </div>
         </div>
@@ -178,23 +198,31 @@
 
             <div class="showcase-grid">
                 <div class="showcase-item">
-                    <div class="showcase-image"><div class="img-placeholder"><i data-lucide="shield" aria-hidden="true"></i></div></div>
+                    <div class="showcase-image">
+                        <div class="img-placeholder"><i data-lucide="shield" aria-hidden="true"></i></div>
+                    </div>
                     <h3>SSL Bypass Setup</h3>
                     <p>Easy-to-use interface for configuring and injecting bypass scripts</p>
                 </div>
                 <div class="showcase-item">
-                    <div class="showcase-image"><div class="img-placeholder"><i data-lucide="list-filter" aria-hidden="true"></i></div></div>
+                    <div class="showcase-image">
+                        <div class="img-placeholder"><i data-lucide="list-filter" aria-hidden="true"></i></div>
+                    </div>
                     <h3>Traffic Analysis</h3>
                     <p>Real-time request list with filtering and detailed inspection tools</p>
                 </div>
                 <div class="showcase-item">
-                    <div class="showcase-image"><div class="img-placeholder"><i data-lucide="network" aria-hidden="true"></i></div></div>
+                    <div class="showcase-image">
+                        <div class="img-placeholder"><i data-lucide="network" aria-hidden="true"></i></div>
+                    </div>
                     <h3>Request Mapping</h3>
                     <p>Configure URL mappings and mock responses with regex patterns</p>
                 </div>
                 <div class="showcase-item">
                     <!-- "timeline" doesn't exist in Lucide; replaced with "bar-chart-2" -->
-                    <div class="showcase-image"><div class="img-placeholder"><i data-lucide="bar-chart-2" aria-hidden="true"></i></div></div>
+                    <div class="showcase-image">
+                        <div class="img-placeholder"><i data-lucide="bar-chart-2" aria-hidden="true"></i></div>
+                    </div>
                     <h3>Timeline View</h3>
                     <p>Visualize request distribution and network patterns over time</p>
                 </div>
@@ -215,7 +243,8 @@
                 <div class="tech-item"><i data-lucide="shield-check" aria-hidden="true"></i><span>Conscrypt</span></div>
                 <div class="tech-item"><i data-lucide="globe" aria-hidden="true"></i><span>WebView</span></div>
                 <div class="tech-item"><i data-lucide="wind" aria-hidden="true"></i><span>Flutter</span></div>
-                <div class="tech-item"><i data-lucide="smartphone" aria-hidden="true"></i><span>React Native</span></div>
+                <div class="tech-item"><i data-lucide="smartphone" aria-hidden="true"></i><span>React Native</span>
+                </div>
                 <div class="tech-item"><i data-lucide="cpu" aria-hidden="true"></i><span>Frida</span></div>
                 <div class="tech-item"><i data-lucide="terminal" aria-hidden="true"></i><span>Android SDK</span></div>
                 <div class="tech-item"><i data-lucide="apple" aria-hidden="true"></i><span>iOS</span></div>
@@ -239,11 +268,13 @@
                     <div class="versions">
                         <div class="version-item">
                             <span class="version-label">Apple Silicon</span>
-                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download" aria-hidden="true"></i> arm64</a>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i
+                                    data-lucide="download" aria-hidden="true"></i> arm64</a>
                         </div>
                         <div class="version-item">
                             <span class="version-label">Intel</span>
-                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download" aria-hidden="true"></i> x64</a>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i
+                                    data-lucide="download" aria-hidden="true"></i> x64</a>
                         </div>
                     </div>
                 </div>
@@ -255,11 +286,15 @@
                     <div class="versions">
                         <div class="version-item">
                             <span class="version-label">Installer (Recommended)</span>
-                            <a href="https://github.com/danieldev23/trafexia/releases/tag/v2.0.0" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download" aria-hidden="true"></i> Setup.exe</a>
+                            <a href="https://github.com/danieldev23/trafexia/releases" class="download-btn"
+                                title="Update this link with your Google Drive URL"><i data-lucide="download"
+                                    aria-hidden="true"></i> Setup.exe</a>
                         </div>
                         <div class="version-item">
                             <span class="version-label">Portable</span>
-                            <a href="https://github.com/danieldev23/trafexia/releases/tag/v2.0.0" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download" aria-hidden="true"></i> Portable.exe</a>
+                            <a href="https://github.com/danieldev23/trafexia/releases" class="download-btn"
+                                title="Update this link with your Google Drive URL"><i data-lucide="download"
+                                    aria-hidden="true"></i> Portable.exe</a>
                         </div>
                     </div>
                 </div>
@@ -271,20 +306,27 @@
                     <div class="versions">
                         <div class="version-item">
                             <span class="version-label">AppImage (Universal)</span>
-                            <a href="https://github.com/danieldev23/trafexia/releases/tag/v2.0.0" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download" aria-hidden="true"></i> AppImage</a>
+                            <a href="https://github.com/danieldev23/trafexia/releases" class="download-btn"
+                                title="Update this link with your Google Drive URL"><i data-lucide="download"
+                                    aria-hidden="true"></i> AppImage</a>
                         </div>
                         <div class="version-item">
                             <span class="version-label">arm64</span>
-                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i data-lucide="download" aria-hidden="true"></i> arm64</a>
+                            <a href="#" class="download-btn" title="Update this link with your Google Drive URL"><i
+                                    data-lucide="download" aria-hidden="true"></i> arm64</a>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="download-notes">
-                <div class="note-item"><i data-lucide="info" aria-hidden="true"></i><span><strong>Installation:</strong> Download and run the installer or extract the portable version to use immediately</span></div>
-                <div class="note-item"><i data-lucide="check" aria-hidden="true"></i><span><strong>Requirements:</strong> Node.js 18+ (for development), or standalone executable for end users</span></div>
-                <div class="note-item"><i data-lucide="shield" aria-hidden="true"></i><span><strong>Security:</strong> For advanced features, Android SDK and Frida tools are recommended</span></div>
+                <div class="note-item"><i data-lucide="info" aria-hidden="true"></i><span><strong>Installation:</strong>
+                        Download and run the installer or extract the portable version to use immediately</span></div>
+                <div class="note-item"><i data-lucide="check"
+                        aria-hidden="true"></i><span><strong>Requirements:</strong> Node.js 18+ (for development), or
+                        standalone executable for end users</span></div>
+                <div class="note-item"><i data-lucide="shield" aria-hidden="true"></i><span><strong>Security:</strong>
+                        For advanced features, Android SDK and Frida tools are recommended</span></div>
             </div>
         </div>
     </section>
@@ -330,7 +372,8 @@
             </div>
 
             <div class="cta-bottom">
-                <p>Need more help? Check the <a href="https://github.com/danieldev23/trafexia#readme" target="_blank" rel="noopener noreferrer" class="link">full documentation</a></p>
+                <p>Need more help? Check the <a href="https://github.com/danieldev23/trafexia#readme" target="_blank"
+                        rel="noopener noreferrer" class="link">full documentation</a></p>
             </div>
         </div>
     </section>
@@ -342,8 +385,10 @@
                 <h2 class="cta-title" id="cta-title">Ready to intercept mobile traffic?</h2>
                 <p class="cta-subtitle">Join hundreds of developers and security researchers using Trafexia</p>
                 <div class="cta-buttons">
-                    <a href="#download" class="btn btn-primary btn-lg"><i data-lucide="download" aria-hidden="true"></i> Download Now</a>
-                    <a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-lg"><i data-lucide="star" aria-hidden="true"></i> Star on GitHub</a>
+                    <a href="#download" class="btn btn-primary btn-lg"><i data-lucide="download" aria-hidden="true"></i>
+                        Download Now</a>
+                    <a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer"
+                        class="btn btn-outline btn-lg"><i data-lucide="star" aria-hidden="true"></i> Star on GitHub</a>
                 </div>
             </div>
         </div>
@@ -355,9 +400,11 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <h4 class="footer-title">Trafexia</h4>
-                    <p class="footer-desc">Professional mobile traffic interceptor for developers and security researchers</p>
+                    <p class="footer-desc">Professional mobile traffic interceptor for developers and security
+                        researchers</p>
                     <div class="social-links">
-                        <a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer" aria-label="Trafexia on GitHub">
+                        <a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer"
+                            aria-label="Trafexia on GitHub">
                             <i data-lucide="github" aria-hidden="true"></i>
                         </a>
                     </div>
@@ -368,16 +415,20 @@
                     <ul class="footer-links">
                         <li><a href="#features">Features</a></li>
                         <li><a href="#download">Download</a></li>
-                        <li><a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer">Documentation</a></li>
+                        <li><a href="https://github.com/danieldev23/trafexia" target="_blank"
+                                rel="noopener noreferrer">Documentation</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-section">
                     <h4 class="footer-title">Resources</h4>
                     <ul class="footer-links">
-                        <li><a href="https://github.com/danieldev23/trafexia/issues" target="_blank" rel="noopener noreferrer">Report Issues</a></li>
-                        <li><a href="https://github.com/danieldev23/trafexia" target="_blank" rel="noopener noreferrer">Source Code</a></li>
-                        <li><a href="https://github.com/danieldev23/trafexia/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a></li>
+                        <li><a href="https://github.com/danieldev23/trafexia/issues" target="_blank"
+                                rel="noopener noreferrer">Report Issues</a></li>
+                        <li><a href="https://github.com/danieldev23/trafexia" target="_blank"
+                                rel="noopener noreferrer">Source Code</a></li>
+                        <li><a href="https://github.com/danieldev23/trafexia/blob/main/LICENSE" target="_blank"
+                                rel="noopener noreferrer">License</a></li>
                     </ul>
                 </div>
             </div>
@@ -391,4 +442,5 @@
     <!-- Script loaded at end of body; lucide loaded with defer above -->
     <script src="script.js"></script>
 </body>
+
 </html>
