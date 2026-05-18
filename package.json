@@ -1,6 +1,6 @@
 {
   "name": "trafexia",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "description": "Mobile Traffic Interceptor - Desktop App for HTTP/HTTPS traffic analysis",
   "main": "dist-electron/main/index.js",
   "scripts": {
